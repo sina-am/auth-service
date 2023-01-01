@@ -1,0 +1,126 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) YEAR ORGANIZATION
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: PACKAGE VERSION\n"
+"POT-Creation-Date: 2022-12-20 12:32+0330\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Generated-By: pygettext.py 1.5\n"
+
+
+#: app/models/profile.py:136
+msgid "invalid city id"
+msgstr ""
+
+#: app/models/profile.py:179 app/models/registration.py:32
+#: app/models/registration.py:59
+msgid "passwords do not match"
+msgstr ""
+
+#: app/models/profile.py:186 app/models/profile.py:198
+msgid "verify_as should be EXISTENT_USER"
+msgstr ""
+
+#: app/models/profile.py:204
+msgid "phone_number should be eqaul to the verification.phone_number"
+msgstr ""
+
+#: app/models/registration.py:21 app/models/registration.py:48
+msgid "verify_as should be NEW_USER"
+msgstr ""
+
+#: app/models/registration.py:27 app/models/registration.py:54
+msgid "role is not allowed"
+msgstr ""
+
+#: app/models/verification.py:32 app/models/verification.py:58
+msgid "user does not exist"
+msgstr ""
+
+#: app/models/verification.py:36 app/models/verification.py:62
+msgid "user already exists."
+msgstr ""
+
+#: app/models/verification.py:37 app/models/verification.py:63
+msgid "invalid type"
+msgstr ""
+
+#: app/routers/errors.py:10
+msgid "Incorrect username or password"
+msgstr ""
+
+#: app/routers/errors.py:18
+msgid "User does not have permission to perform this action"
+msgstr ""
+
+#: app/routers/errors.py:25
+msgid "Could not validate credentials"
+msgstr ""
+
+#: app/routers/errors.py:33
+msgid "Verification code is invalid or expired"
+msgstr ""
+
+#: app/routers/errors.py:40
+msgid "User already exists"
+msgstr ""
+
+#: app/routers/v1/profile.py:115
+msgid "profile updated successfully"
+msgstr ""
+
+#: app/routers/v1/profile.py:137
+msgid "password successfully reset."
+msgstr ""
+
+#: app/routers/v1/profile.py:161
+msgid "phone number successfully reset."
+msgstr ""
+
+#: app/routers/v1/register.py:33 app/routers/v1/register.py:56
+msgid "user created"
+msgstr ""
+
+#: app/routers/v1/verification.py:35
+msgid "already sent"
+msgstr ""
+
+#: app/routers/v1/verification.py:39
+msgid "sent"
+msgstr ""
+
+#: app/routers/v1/verification.py:53
+msgid "verified"
+msgstr ""
+
+#: app/types/fields.py:55
+msgid "invalid company code format"
+msgstr ""
+
+#: app/types/fields.py:75
+msgid "invalid national code format"
+msgstr ""
+
+#: app/types/fields.py:95
+msgid "invalid post code format"
+msgstr ""
+
+#: app/types/fields.py:108
+msgid "invalid phone number"
+msgstr ""
+
+#: app/types/fields.py:124
+msgid "invalid verification code format"
+msgstr ""
+
+#: app/types/fields.py:140
+msgid "invalid company domain format"
+msgstr ""
+

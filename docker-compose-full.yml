@@ -1,0 +1,51 @@
+version: "3.3"
+
+services:
+  app:
+    build: .
+    env_file:
+      - .env.docker
+    ports:
+      - "8000:80"
+
+    depends_on:
+      - minio
+      - createbuckets
+      - mongodb
+      - redis
+      - rabbitmq
+      
+  minio:
+    image: minio/minio:latest
+    ports:
+      - "9001:9001"
+    
+    command: server /data --console-address ":9001"
+
+    environment:
+      - "MINIO_ACCESS_KEY=AKIAIOSFODNN7EXAMPLE"
+      - "MINIO_SECRET_KEY=wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY"
+
+  # To create a bucket in run time using .env.docker credentials
+  # Stolen from https://github.com/minio/minio/issues/4769 
+  createbuckets:
+    image: minio/mc
+    depends_on:
+      - minio
+    entrypoint: >
+      /bin/sh -c "
+      /usr/bin/mc config host add myminio http://minio:9000 AKIAIOSFODNN7EXAMPLE wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY;
+      /usr/bin/mc rm -r --force myminio/somebucketname;
+      /usr/bin/mc mb myminio/somebucketname;
+      /usr/bin/mc policy download myminio/somebucketname;
+      exit 0;
+      "
+
+  mongodb:
+    image: mongo:latest
+
+  redis:
+    image: redis:alpine
+
+  rabbitmq:
+    image: rabbitmq:latest

@@ -1,0 +1,27 @@
+# Run external services
+
+version: "3.3"
+
+services:
+  minio:
+    image: minio/minio:latest
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    
+    command: server /data --console-address ":9001"
+
+  mongodb:
+    image: mongo:latest
+    ports:
+      - 27017:27017
+      
+  redis:
+    image: redis:alpine
+    ports:
+      - 6379:6379
+
+  rabbitmq:
+    image: rabbitmq:latest
+    ports:
+      - 5672:5672

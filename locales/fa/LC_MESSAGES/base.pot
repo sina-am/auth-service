@@ -1,0 +1,97 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) YEAR ORGANIZATION
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: PACKAGE VERSION\n"
+"POT-Creation-Date: 2022-08-30 19:20+0430\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Generated-By: pygettext.py 1.5\n"
+
+
+#: app/routers/v1/information.py:30
+msgid "city created"
+msgstr "ساخته شد"
+
+#: app/models/profile.py:55
+msgid "invalid city name or province"
+msgstr "شهر و یا استان وارد شده صحیح نمیباشد"
+
+#: app/models/register.py:17
+msgid "user already exists."
+msgstr "کاربر قبلا در سامانه ثبت شده است"
+
+#: app/models/register.py:50 app/models/register.py:66
+msgid "passwords do not match"
+msgstr "پسورد ها یکسان نیست"
+
+#: app/routers/errors.py:8
+msgid "Incorrect username or password"
+msgstr "نام کاربری یا گذرواژه صحیح نمیباشد"
+
+#: app/routers/errors.py:16
+msgid "User does not have permission to perform this action"
+msgstr "شماره به این قسمت دسترسی ندارید"
+
+#: app/routers/errors.py:23
+msgid "Could not validate credentials"
+msgstr ""
+
+#: app/routers/errors.py:31
+msgid "Verification code is invalid or expired"
+msgstr "کد تایید اشتباه است و یا منقضی شده است"
+
+#: app/routers/errors.py:38
+msgid "User already exists"
+msgstr "کاربر قبلا در سامانه ثبت شده است"
+
+#: app/routers/v1/profile.py:82
+msgid "profile updated successfully"
+msgstr "پروفایل بروزرسانی شد"
+
+#: app/routers/v1/register.py:46 app/routers/v1/register.py:80
+msgid "user created"
+msgstr "کاربر ایجاد شد"
+
+#: app/routers/v1/verification.py:34
+msgid "already sent"
+msgstr "کد تایید قبلا ارسال شده است"
+
+#: app/routers/v1/verification.py:37
+msgid "sent"
+msgstr "ارسال شد"
+
+#: app/routers/v1/verification.py:53
+msgid "verified"
+msgstr "تایید شد"
+
+#: app/types/fields.py:35
+msgid "invalid company code format"
+msgstr "فرمت کد شرکتی صحیح نمی‌باشد (کد شرکتی باید شامل ۱۱ رقم باشد)"
+
+#: app/types/fields.py:52
+msgid "invalid national code format"
+msgstr "شماره ملی صحیح نیست(باید ۱۰ رقم باشد)"
+
+#: app/types/fields.py:69
+msgid "invalid post code format"
+msgstr "کد پستی صحیح نیست(کد پستی شامل ۱۱ رقم است)"
+
+#: app/types/fields.py:80
+msgid "invalid phone number"
+msgstr "فرمت شماره تلفن صحیص نیست شماره تلفن بدون صفر و ۱۰ رقم است"
+
+#: app/types/fields.py:94
+msgid "invalid verification code format"
+msgstr "کد تایید باید ۵ رقمی باشد"
+
+#: app/types/fields.py:108
+msgid "invalid company domain format"
+msgstr "دامنه شرکتی صحیح نیست"
+
