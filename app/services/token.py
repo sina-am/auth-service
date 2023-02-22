@@ -52,9 +52,11 @@ def decode_access_token(token: str) -> JwtPayload:
         
 
 def get_access_token(user: User, platform: str, role: str) -> str:
+    if not user.id:
+        raise ValueError("user id is None") 
     jwt_payload = JwtPayload(
         user=JwtUser(
-            id=user.id,
+            _id=user.id,
             roles=user.roles,
             type=user.type
         ),
@@ -62,7 +64,6 @@ def get_access_token(user: User, platform: str, role: str) -> str:
             platform=platform,
             role=role
         ),
-        platform_name=platform,
         expiration=calculate_expiration_time()
     )
     return encode_access_token(jwt_payload)

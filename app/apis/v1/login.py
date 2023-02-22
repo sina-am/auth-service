@@ -6,7 +6,7 @@ from fastapi.security import OAuth2PasswordRequestForm, OAuth2PasswordBearer
 from app.models.auth import LegalUserAuthenticationIn, RealUserAuthenticationIn
 from app.models.token import AccessTokenOut
 from app.services.token import get_access_token
-from app.services import authentication
+from app.services import get_srv, AuthenticationService 
 from app.types.fields import CompanyCodeField, NationalCodeField
 from app.models.base import PlatformSpecificationIn
 
@@ -15,15 +15,16 @@ router = APIRouter(tags=['Login'])
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/token/")
 
 
-
 @router.post("/token/")
-async def login_for_swagger(credentials: OAuth2PasswordRequestForm = Depends()):
+async def login_for_swagger(
+    credentials: OAuth2PasswordRequestForm = Depends(),
+    service: AuthenticationService = Depends(get_srv) 
+    ):
     """
     Authentication endpoint for users that want to use swagger documentation.
     This is an internal endpoint and should only be used internally for debugging purpose.  
     """
 
-    cred = None
     if len(credentials.username) == 10:
         cred = RealUserAuthenticationIn(
             national_code=NationalCodeField(credentials.username),
@@ -31,14 +32,14 @@ async def login_for_swagger(credentials: OAuth2PasswordRequestForm = Depends()):
             current_platform=PlatformSpecificationIn(platform="*", role='admin')
         )
 
-    elif len(credentials.username) == 11:
+    else:
         cred = LegalUserAuthenticationIn(
             company_code=CompanyCodeField(credentials.username),
             password=credentials.password,
             current_platform=PlatformSpecificationIn(platform="*", role="admin")
         )
 
-    user = authentication.authenticate(cred)
+    user = service.authenticate(cred)
 
     access_token = get_access_token(
         user, 
@@ -50,13 +51,16 @@ async def login_for_swagger(credentials: OAuth2PasswordRequestForm = Depends()):
 
 
 @router.post("/login/", response_model=AccessTokenOut)
-async def login_user(credentials: Union[RealUserAuthenticationIn, LegalUserAuthenticationIn]):
+async def login_user(
+    credentials: Union[RealUserAuthenticationIn, LegalUserAuthenticationIn],
+    service: AuthenticationService = Depends(get_srv) 
+    ):
     """
     Authenticate users from diffrent platforms
 
     **platform_name**: Platform that user came from:
     """
-    user = authentication.authenticate(credentials)
+    user = service.authenticate(credentials)
         
     access_token = get_access_token(
         user, 

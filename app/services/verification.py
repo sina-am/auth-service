@@ -1,87 +1,86 @@
 import json
 from typing import Union
-from app.types import PhoneNumberField, VerificationCodeField
-from app.services.notification import SMSNotification, Notification
-from app.cache.connection import redis_connection_pool
-from app.database import storage, errors
-from redis import Redis
-from app.models.verification import RealUserCodeVerificationIn, LegalUserCodeVerificationIn
+from app.cache import get_cache
+from app.database import get_db
+from app.types import VerificationCodeField
+from app.services.notification import SMSNotification
+from app.database import errors
+from app.models.verification import (
+    LegalUserCodeVerificationIn, RealUserCodeVerificationIn,
+    LegalUserSendSMSCodeIn, RealUserSendSMSCodeIn,
+)
 
+class InvalidVerificationCode(Exception):
+    pass
+
+class SMSVerificationService:
+    def __init__(self, notification: SMSNotification):
+        self.notification = notification
+        self.cache = get_cache ()
+        self.database = get_db() 
  
-class SMSVerificationWithExtraInfo:
-    def __init__(self, phone: PhoneNumberField, extra_info: str, test: bool = False) -> None:
-        self.redis = Redis(connection_pool=redis_connection_pool)
-        self.phone = phone
-        self.notification = SMSNotification(self.phone)
-        self.extra_info = extra_info
-
-    def set(self, code: VerificationCodeField, expire_time=360):
-        self.redis.set(self.phone, json.dumps({'code': code, 'extra': self.extra_info}))
-        self.redis.expire(self.phone, expire_time)
+    def set(self, phone: str, extra_info, code: VerificationCodeField, expire_time=360):
+        self.cache.set(phone, {"code": code, "extra": extra_info}, expire_time)
     
-    def get(self) -> Union[dict, None]:
-        info = self.redis.get(self.phone)
-        if info:
-            return json.loads(info)
-        return None
+    def get(self, phone: str) -> Union[dict, None]:
+        return self.cache.get(phone)
 
-    def delete(self):
-        self.redis.delete(self.phone)
+    def delete(self, phone):
+        self.cache.delete(phone)
 
-    def check_already_exist(self) -> bool:
-        info = self.get()
-        if info and info['extra'] == self.extra_info:
+    def __get_extra_info(self, v: Union[RealUserSendSMSCodeIn, LegalUserSendSMSCodeIn]) -> str:
+        if isinstance(v, LegalUserSendSMSCodeIn):
+            return v.company_code
+        return v.national_code
+
+    def check_already_exist(self, v: Union[RealUserSendSMSCodeIn, LegalUserSendSMSCodeIn]) -> bool:
+        info = self.get(v.phone_number)
+        if info and info['extra'] == self.__get_extra_info(v):
             return True
         return False
 
-    def verify(self, code: VerificationCodeField) -> bool:
-        info = self.get()
-        if info and info['code'] == code and info['extra'] == self.extra_info:
-            return True
-        return False
+    def verify(self, v: Union[RealUserCodeVerificationIn, LegalUserCodeVerificationIn], delete_on_success: bool = False):
+        """ Raise on invalid verification. """
+        info = self.get(v.phone_number)
+        if info and info['code'] == v.code and info['extra'] == self.__get_extra_info(v):
+            if delete_on_success:
+                self.delete(v.phone_number)
+                return
+            
+        raise InvalidVerificationCode()
 
-    def send(self):
+    def send(self, v: Union[RealUserSendSMSCodeIn, LegalUserSendSMSCodeIn]):
+        """ Send verification code. """
         code = VerificationCodeField.generate_new()
-        self.set(code)
-        self.notification.send(self.phone, f"verification code: {code}")
+        extra_info = self.__get_extra_info(v)
+        self.set(v.phone_number, extra_info, code)
+        self.notification.send(v.phone_number, f"verification code: {code}")
+         
 
+    def verify_and_validate(self, v: Union[RealUserCodeVerificationIn, LegalUserCodeVerificationIn], delete_on_success: bool = False):
+        """ Shortcut for validating and verifying. """
+        self.validate_model(v)
+        return self.verify(v, delete_on_success=delete_on_success)
 
-def get_service(
-    verification: Union[RealUserCodeVerificationIn, LegalUserCodeVerificationIn]
-    ) -> SMSVerificationWithExtraInfo:
+    def validate_model(self, v: Union[RealUserSendSMSCodeIn, LegalUserSendSMSCodeIn]):
+        if isinstance(v, LegalUserSendSMSCodeIn):
+           return self.__validate_for_legal_user(v)
+        return self.__validate_for_real_user(v) 
 
-    if hasattr(verification, 'company_code'):
-        validate_verify_as_for_legal(verification)
-        return SMSVerificationWithExtraInfo(verification.phone_number, verification.company_code)
-    elif hasattr(verification, 'national_code'):
-        validate_verify_as_for_real(verification)
-        return SMSVerificationWithExtraInfo(verification.phone_number, verification.national_code)
-    else:
-        raise TypeError("invalid verification type format")
+    def __validate_for_legal_user(self, v: LegalUserSendSMSCodeIn):
+        if v.verify_as == 'EXISTENT_USER':
+            user = self.database.users.get_by_company_code(v.company_code)
+            if user.phone_number == v.phone_number:
+                return
+            raise errors.UserDoesNotExist("user does not exist")
+        elif v.verify_as == 'NEW_USER' and self.database.users.check_by_company_code(v.company_code):
+            raise errors.UserAlreadyExist('user already exist')
 
-
-def verify_code(
-    verification: Union[RealUserCodeVerificationIn, LegalUserCodeVerificationIn], 
-    delete_code: bool = False) -> bool:
-
-    service = get_service(verification)
-
-    result = service.verify(verification.code)
-    if delete_code and result:
-        service.delete()
-
-    return result
-
-
-def validate_verify_as_for_legal(v: LegalUserCodeVerificationIn):
-    if v.verify_as == 'EXISTENT_USER' and not storage.users.check_by_company_code(v.company_code):
-        raise errors.UserDoesNotExist("user does not exist")
-    elif v.verify_as == 'NEW_USER' and storage.users.check_by_company_code(v.company_code):
-        raise errors.UserAlreadyExist('user already exist')
-
-
-def validate_verify_as_for_real(v: RealUserCodeVerificationIn):
-    if v.verify_as == 'EXISTENT_USER' and not storage.users.check_by_national_code(v.national_code):
-        raise errors.UserDoesNotExist('user does not exist')
-    elif v.verify_as == 'NEW_USER' and storage.users.check_by_national_code(v.national_code):
-        raise errors.UserAlreadyExist('user already exist')
+    def __validate_for_real_user(self, v: RealUserSendSMSCodeIn):
+        if v.verify_as == 'EXISTENT_USER':
+            user = self.database.users.get_by_national_code(v.national_code)
+            if user.phone_number == v.phone_number:
+                return
+            raise errors.UserDoesNotExist('user does not exist')
+        elif v.verify_as == 'NEW_USER' and self.database.users.check_by_national_code(v.national_code):
+            raise errors.UserAlreadyExist('user already exist')

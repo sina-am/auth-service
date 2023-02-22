@@ -18,8 +18,8 @@ class S3Settings(BaseModel):
 class RabitMQSettings(BaseModel):
     address: str
     port: int = 5672
-    username: Optional[str]
-    password: Optional[str]
+    username: str = "guest"
+    password: str = "guest"
 
 
 class MongoDBSettings(BaseModel):

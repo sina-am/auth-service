@@ -1,26 +1,25 @@
 from abc import ABC, abstractmethod
 
 from app.services.sms.melipayamak import Rest
-from app.core.config import settings
 from app.core.logging import logger
 
 
-class Notification(ABC):
+class SMSNotification(ABC):
     @abstractmethod
     def send(self, phone: str, message: str):
         pass
 
 
-class SMSNotification(Notification):
-    def __init__(self) -> None:
-        self.from_phone = settings.melipayamak.phone
-        self.provider = Rest(settings.melipayamak.username, settings.melipayamak.password)
+class MelipayamakSMSNotification(SMSNotification):
+    def __init__(self, phone: str, username: str, password: str) -> None:
+        self.from_phone = phone 
+        self.provider = Rest(username, password)
         super().__init__()
 
     def send(self, phone: str, message: str):
         self.provider.send(phone, self.from_phone, message)
         
     
-class FakeSMSNotification(Notification):
+class FakeSMSNotification(SMSNotification):
     def send(self, phone: str, message: str):
         logger.info(f'message: {message} sended to {phone}')    

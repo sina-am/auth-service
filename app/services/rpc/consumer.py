@@ -1,44 +1,55 @@
-from asyncio.log import logger
-import logging
-from aio_pika import Message, connect_robust
+from aio_pika import Message, connect_robust, connect
 from aio_pika.abc import AbstractIncomingMessage
 from app.services.rpc.handler import request_handler
 from app.core.logging import logger
 from app.core.config import settings
 
 
-async def consume(loop):
-    connection = await connect_robust(
-        host=settings.rabbitmq.address,
-        port=settings.rabbitmq.port, 
-        login=settings.rabbitmq.username,
-        password=settings.rabbitmq.password,
-        loop=loop
-    )
-    channel = await connection.channel()
-    exchange = channel.default_exchange
+class RabbitMQ:
+    def __init__(self, address: str, port: int, username: str = "", password: str = "") -> None:
+        self.address = address
+        self.port = port
+        self.username = username
+        self.password = password
 
-    # Declaring queue
-    queue = await channel.declare_queue("rpc_queue")
-    logger.info("Awaiting RPC requests.")
+    async def ping(self):
+        await connect(
+            host=self.address,
+            port=self.port, 
+            login=self.username,
+            password=self.password,
+        )
 
-    async with queue.iterator() as qiterator:
-        message: AbstractIncomingMessage
-        async for message in qiterator:
-            try:
-                async with message.process(requeue=False):
-                    assert message.reply_to is not None
+    async def consume(self, loop):
+        self.connection = await connect_robust(
+            host=self.address,
+            port=self.port, 
+            login=self.username,
+            password=self.password,
+            loop=loop
+        )
+        self.channel = await self.connection.channel()
+        self.exchange = self.channel.default_exchange   
+        self.queue = await self.channel.declare_queue("rpc_auth")
 
-                    response = request_handler(message.body)
+        logger.info("Consuming from queue")
+        async with self.queue.iterator() as qiterator:
+            message: AbstractIncomingMessage
+            async for message in qiterator:
+                try:
+                    async with message.process(requeue=False):
+                        assert message.reply_to is not None
 
-                    await exchange.publish(
-                        Message(
-                            body=response,
-                            content_type='json/application',
-                            correlation_id=message.correlation_id,
-                        ),
-                        routing_key=message.reply_to,
-                    )
-                    logger.info("Request complete")
-            except Exception:
-                logger.exception(f"Processing error for message {message}")
+                        response = request_handler(message.body)
+
+                        await self.exchange.publish(
+                            Message(
+                                body=response,
+                                content_type='json/application',
+                                correlation_id=message.correlation_id,
+                            ),
+                            routing_key=message.reply_to,
+                        )
+                        logger.info("Request complete")
+                except Exception:
+                    logger.exception(f"Processing error for message {message}")

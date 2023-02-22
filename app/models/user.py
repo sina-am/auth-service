@@ -216,6 +216,33 @@ class LegalUserOut(BaseModelOut):
         )
 
 
+class LegalUserCreationIn(BaseModelIn):
+    """ Model for creating a new legal user. """
+    company_code: CompanyCodeField 
+    phone_number: PhoneNumberField
+    roles: List[UserRole]
+    company_name: str
+    domain: CompanyDomainField
+    password1: str
+    password2: str
+
+    def to_model(self) -> LegalUser:
+        return LegalUser.new_user(
+            company_code=self.company_code, 
+            phone_number=self.phone_number,
+            company_name=self.company_name, 
+            domain=self.domain, 
+            plain_password=self.password1, 
+            roles=self.roles
+        )
+        
+    @validator('password2')
+    def passwords_match(cls, v, values, **kwargs):
+        if 'password1' in values and v != values['password1']:
+            raise ValueError(_('passwords do not match'))
+        return v
+
+
 class LegalUserRegistrationIn(BaseModelIn):
     verification: LegalUserCodeVerificationIn
     current_platform: PlatformSpecificationIn
@@ -266,10 +293,10 @@ class ProfileOut(BaseModelOut):
     @classmethod
     def from_db(cls, 
         user: Union[RealUser, LegalUser], 
-        current_platform: PlatformSpecificationOut = None):
+        current_platform: PlatformSpecificationOut | None = None) -> "ProfileOut":
 
         return cls(
-            id=user.id,
+            _id=user.id,
             phone_number=user.phone_number,
             type=user.type,
             legal_user=LegalUserOut.from_db(user) if user.is_legal() else None,

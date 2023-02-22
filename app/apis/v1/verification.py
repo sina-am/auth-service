@@ -1,15 +1,14 @@
 from typing import Union
-from fastapi import BackgroundTasks
+from fastapi import BackgroundTasks, Depends
 from fastapi.routing import APIRouter
 from app.models.response import StandardResponse
-from app.apis.errors import HTTPInvalidVerificationCodeError
 from app.apis.response import standard_response
 from app.utils.translation import _
 from app.models.verification import (
     LegalUserCodeVerificationIn, RealUserCodeVerificationIn,
     LegalUserSendSMSCodeIn, RealUserSendSMSCodeIn,
 )
-from app.services import verification 
+from app.services import AuthenticationService, get_srv 
 
 
 router = APIRouter(prefix='/verification',  tags=['Verification'])
@@ -18,7 +17,8 @@ router = APIRouter(prefix='/verification',  tags=['Verification'])
 @router.post('/sms/send/', response_model=StandardResponse, summary="Send SMS Verification")
 def send_sms_code(
     v: Union[RealUserSendSMSCodeIn, LegalUserSendSMSCodeIn],
-    background_tasks: BackgroundTasks
+    background_tasks: BackgroundTasks,
+    service: AuthenticationService = Depends(get_srv)
     ):
     """
     Verificate a user's phone number by sending a verification code to the given phone_number.
@@ -32,12 +32,11 @@ def send_sms_code(
 
     NOTE: Default value for **verify_as** is **NEW_USER**.
     """
-    service = verification.get_service(v)
-
-    if service.check_already_exist():
+    service.verification.validate_model(v)
+    if service.verification.check_already_exist(v):
         return standard_response(_('already sent'))
 
-    background_tasks.add_task(service.send)
+    background_tasks.add_task(service.verification.send, v)
     return standard_response(_('sent'))
 
 
@@ -47,10 +46,8 @@ def send_sms_code(
     responses={400: {'model': StandardResponse}}
 )
 async def verfiy_sms_code(
-    v: Union[LegalUserCodeVerificationIn, RealUserCodeVerificationIn]
+    v: Union[LegalUserCodeVerificationIn, RealUserCodeVerificationIn],
+    service: AuthenticationService = Depends(get_srv)
     ):
-
-    result = verification.verify_code(v)
-    if result:
-        return standard_response(_('verified'))
-    raise HTTPInvalidVerificationCodeError()
+    service.verification.verify_and_validate(v)
+    return standard_response(_('verified'))

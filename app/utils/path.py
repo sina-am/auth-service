@@ -14,7 +14,6 @@ def trim_domain(url: str) -> str:
     """ Removes the domain part from a url. """
     return urlparse(url).path
 
-
 def get_default_profile_picture_url():
     """ returns default picture when user haven't upload any thing yet. """
     return path.join(settings.s3.bucket_name, 'default.png')

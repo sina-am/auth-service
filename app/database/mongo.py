@@ -1,21 +1,20 @@
 from app.models.role import Role
 from app.models.user import RealUser, LegalUser
-from app.models.province import Province, City
-from typing import Any, List, Union
-from gridfs import Collection, Database
+from app.models.province import Province
+from typing import List, Union
+from pymongo import database
 from app.database import errors
 from bson import ObjectId
 from app.types.fields import CompanyCodeField, NationalCodeField, UserType
 from datetime import datetime
-from app.core.config import settings
 from pymongo import MongoClient
 from app.database.base import (
-    BaseDatabase, BaseUserStorage, BaseProvinceStorage, BaseRoleStorage
+    Database, UserCollection, ProvinceDatabase, RoleCollection
 )
 
 
-class MongoRoleStorage(BaseRoleStorage):
-    def __init__(self, db: Database):
+class MongoRoleCollection(RoleCollection):
+    def __init__(self, db: database.Database):
         self.db = db
         self.collection = self.db.roles
     
@@ -34,7 +33,7 @@ class MongoRoleStorage(BaseRoleStorage):
         result = self.collection.find_one({"platform": platform})
         if result:
             return Role(**result)
-        return None
+        raise errors.RoleDoesNotExist(f"role with platform {platform} don't exist.")
 
     def __check_if_exists(self, role: Role) -> bool:
         result = self.collection.find_one({"$exists": {"platform": role.platform}})
@@ -50,8 +49,8 @@ class MongoRoleStorage(BaseRoleStorage):
         raise errors.RoleDoesNotExist(f"role id {role_id} not found")
 
 
-class MongoUserStorage(BaseUserStorage):
-    def __init__(self, db: Database):
+class MongoUserCollection(UserCollection):
+    def __init__(self, db: database.Database):
         self.db = db
         self.collection = self.db.users
         self.required_fields = {
@@ -81,6 +80,9 @@ class MongoUserStorage(BaseUserStorage):
     def __find_one(self, filters):
         """ Only fetchs required fields. """
         return self.collection.find_one(filters, self.required_fields)
+
+    def __find(self, filters):
+        return self.collection.find(filters, self.required_fields)
 
     def __error_on_duplicate_key(self, user: Union[RealUser, LegalUser]):
         if isinstance(user, RealUser):
@@ -130,10 +132,10 @@ class MongoUserStorage(BaseUserStorage):
             return RealUser(**document)
         elif document.get("type") == UserType.LEGAL:
             return LegalUser(**document)
-        raise errors.InvalidDatabaseSchema(f"user {user_id} doesn't have a type field")
+        raise errors.InvalidDatabaseSchema(f"user {document['_id']} doesn't have a type field")
 
-    def get_all(self) -> Union[RealUser, LegalUser]:
-        return list(map(lambda d: self.map_to_model(d), self.collection.find())) 
+    def get_all(self) -> List[Union[RealUser, LegalUser]]:
+        return list(map(lambda d: self.map_to_model(d), self.__find({}))) 
 
     def get_by_national_code(self, national_code: NationalCodeField) -> RealUser:
         document = self.__find_one({"national_code": national_code})
@@ -167,7 +169,7 @@ class MongoUserStorage(BaseUserStorage):
         except errors.UserDoesNotExist:
             return False
 
-    def get_by_id(self, user_id: str) -> Union[RealUser, LegalUser, None]:
+    def get_by_id(self, user_id: str) -> Union[RealUser, LegalUser]:
         document = self.__find_one({"_id": ObjectId(user_id)})
         if not document:
             raise errors.UserAlreadyExist("user does not exist")
@@ -193,8 +195,8 @@ class MongoUserStorage(BaseUserStorage):
         )
 
 
-class MongoProvinceStorage(BaseProvinceStorage):
-    def __init__(self, db: Database):
+class MongoProvinceCollection(ProvinceDatabase):
+    def __init__(self, db: database.Database):
         self.db = db
         self.collection = self.db.provinces
 
@@ -225,24 +227,19 @@ class MongoProvinceStorage(BaseProvinceStorage):
             raise errors.CityDoesNotExist(f"city with id {city_id} don't exist")
         return Province(**query) 
 
-    def get_city_id_by_name(self, name: str):
-        result = self.collection.find_one(
-            {'cities.name': name},
-            {'cities.$': 1}
-        )
-        if result:
-            return result['cities'][0]['_id']
-        return None
 
-
-class MongoDatabase(BaseDatabase):
-    def __init__(self):
-        self.client = MongoClient(settings.mongodb.uri)
-        self.db = self.client.get_database(settings.mongodb.database)
-        self.roles = MongoRoleStorage(self.db)
-        self.users = MongoUserStorage(self.db)
-        self.provinces = MongoProvinceStorage(self.db)
+class MongoDatabase(Database):
+    def __init__(self, uri: str, database: str):
+        self.database_name = database
+        self.client = MongoClient(uri)
+        self.db = self.client.get_database(self.database_name)
+        self.roles = MongoRoleCollection(self.db)
+        self.users = MongoUserCollection(self.db)
+        self.provinces = MongoProvinceCollection(self.db)
 
     def check_connection(self):
         return self.db.command('ping')
+    
+    def drop(self):
+        self.client.drop_database(self.database_name)
     

@@ -1,10 +1,11 @@
 from pydantic import BaseModel, validator
+from typing import Optional
 from app.utils.translation import fa
 
 
 class Message(BaseModel):
     en: str
-    fa: str = None
+    fa: Optional[str] 
      
     @validator("fa", pre=True, always=True)
     def translate_message(cls, v, values, **kwargs):

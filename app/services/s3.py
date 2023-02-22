@@ -1,5 +1,4 @@
-from _md5 import md5
-from urllib.parse import urljoin, urlparse
+from hashlib import md5
 from os import path
 import mimetypes
 import boto3

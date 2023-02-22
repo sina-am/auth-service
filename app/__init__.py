@@ -1,1 +1,0 @@
-from app.cache.connection import redis_connection_pool

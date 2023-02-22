@@ -22,7 +22,7 @@ class AuthenticationRpcClient:
         self.connection = await connect_robust(
             host=settings.rabbitmq.address,
             port=settings.rabbitmq.port, 
-            login=settings.rabbitmq.username,
+            login=settings.rabbitmq.username, 
             password=settings.rabbitmq.password,
             loop=self.loop
         )
@@ -40,7 +40,7 @@ class AuthenticationRpcClient:
         future: asyncio.Future = self.futures.pop(message.correlation_id)
         future.set_result(message.body)
 
-    async def call(self, token: str) -> int:
+    async def call(self, token: str):
         correlation_id = str(uuid.uuid4())
         future = self.loop.create_future()
 

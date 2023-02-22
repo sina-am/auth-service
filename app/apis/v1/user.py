@@ -1,23 +1,20 @@
 from typing import Union, List
-from bson import ObjectId
 from fastapi import Depends
 from fastapi.routing import APIRouter
 from fastapi.exceptions import HTTPException 
-from app.models.user import LegalUser, RealUser, PasswordUpdateIn, PhoneNumberUpdateIn, UserUpdateIn, ProfileOut 
+from app.models.user import LegalUser, LegalUserCreationIn, RealUser, PasswordUpdateIn, PhoneNumberUpdateIn, UserUpdateIn, ProfileOut 
 from app.models.token import JwtPayload
 from app.models.profile import (
     PictureIn, PictureOut )
 
-from app.database.errors import UserAlreadyExist, RoleDoesNotExist
 from app.apis.depends import get_current_token, get_current_user, get_current_admin_user
 from app.models.response import StandardResponse
 from app.models.user import RealUser, LegalUser, RealUserCreationIn
-from app.apis.errors import HTTPInvalidVerificationCodeError, HTTPUserAlreadyExistError 
 from app.apis.response import standard_response
+from app.models.verification import RealUserCodeVerificationIn
 from app.utils.translation import _
-from app.services import verification
-from app.services import s3 
-from app.database import storage
+from app.services import AuthenticationService, get_srv
+from app.database import Database, get_db
 
 
 router = APIRouter(prefix="/users", tags=['Users'])
@@ -25,22 +22,30 @@ router = APIRouter(prefix="/users", tags=['Users'])
 
 @router.post('/')
 async def create_user(
-    user_in: Union[RealUserCreationIn, LegalUser],
-    admin: Union[RealUser, LegalUser] = Depends(get_current_admin_user) 
+    user_in: Union[RealUserCreationIn, LegalUserCreationIn],
+    admin: Union[RealUser, LegalUser] = Depends(get_current_admin_user),
+    db: Database = Depends(get_db)
     ):
-    created_user = storage.users.create(user_in.to_model())
+    db.users.create(user_in.to_model())
     return standard_response(_("user created"))
 
 
-@router.get('/', response_model=List[Union[ProfileOut]])
+@router.get('/', response_model=List[ProfileOut])
 async def get_users(
-    admin: Union[RealUser, LegalUser] = Depends(get_current_admin_user) 
+    admin: Union[RealUser, LegalUser] = Depends(get_current_admin_user),
+    db: Database = Depends(get_db)
     ):
-    return list(map(lambda user: ProfileOut.from_db(user), storage.users.get_all()))
+    return list(map(
+        lambda user: ProfileOut.from_db(user),  # type: ignore
+        db.users.get_all()
+    )) 
 
 
 @router.get("/me/", response_model=ProfileOut)
-async def get_my_user(payload: JwtPayload = Depends(get_current_token)):
+async def get_my_user(
+    payload: JwtPayload = Depends(get_current_token),
+    service: AuthenticationService = Depends(get_srv)
+    ):
     """
     Get login user's profile.
 
@@ -52,15 +57,16 @@ async def get_my_user(payload: JwtPayload = Depends(get_current_token)):
     - **current_platform**: are information about the platform
     that the user originally logged-in from.
     """
-    user = storage.users.get_by_id(payload.user.id)
+    user = service.database.users.get_by_id(payload.user.id)
     return ProfileOut.from_db(
-        user=user, current_platform=payload.current_platform)
+        user=user, current_platform=payload.current_platform) 
 
 
 @router.put("/me/", response_model=StandardResponse)
 async def update_my_user(
     user_in: UserUpdateIn, 
-    user: Union[RealUser, LegalUser] = Depends(get_current_user)
+    user: Union[RealUser, LegalUser] = Depends(get_current_user),
+    service: AuthenticationService = Depends(get_srv)
     ):
     """
     Update user's profile.
@@ -78,7 +84,7 @@ async def update_my_user(
     - - **address_information**: All field in this object are required.
     It means, you either have to send it completely, or not send it at all.
     """
-    storage.users.update(user_in.to_model(user))
+    service.database.users.update(user_in.to_model(user))
     return standard_response(_('profile updated successfully'))
 
 
@@ -87,19 +93,19 @@ async def update_my_user(
     response_model=StandardResponse,
     responses={400: {'model': StandardResponse, 'description': 'Invalid or Expired Verification Code'}}
 )
-def change_password(password_in: PasswordUpdateIn):
+def change_password(
+    password_in: PasswordUpdateIn,
+    service: AuthenticationService = Depends(get_srv)
+    ):
     """ Change user password. """
-
-    if not verification.verify_code(password_in.verification, delete_code=True):
-        raise HTTPInvalidVerificationCodeError()  
-    
-    if hasattr(password_in.verification, 'national_code'):
-        user = storage.users.get_by_national_code(password_in.verification.national_code)
+    service.verification.verify_and_validate(password_in.verification, delete_on_success=True)
+    if isinstance(password_in.verification, RealUserCodeVerificationIn):
+        user = service.database.users.get_by_national_code(password_in.verification.national_code)
     else:
-        user = storage.users.get_by_company_code(password_in.verification.company_code)
+        user = service.database.users.get_by_company_code(password_in.verification.company_code)
 
     user.set_password(password_in.password1)
-    storage.users.update(user)
+    service.database.users.update(user)
 
     return standard_response(_("password successfully reset."))
 
@@ -111,7 +117,8 @@ def change_password(password_in: PasswordUpdateIn):
 )
 def change_phone_number(
     phone_number_in: PhoneNumberUpdateIn,
-    user: Union[RealUser, LegalUser] = Depends(get_current_user)
+    user: Union[RealUser, LegalUser] = Depends(get_current_user),
+    service: AuthenticationService = Depends(get_srv)
     ):
     """
     Change phone number.
@@ -122,20 +129,20 @@ def change_phone_number(
 
     if phone_number_in.phone_number == user.phone_number:
         raise HTTPException(status_code=400, detail="can't use the same phone number")
-    if not verification.verify_code(phone_number_in.verification, delete_code=True):
-        raise HTTPInvalidVerificationCodeError()  
+    service.verification.verify_and_validate(phone_number_in.verification, delete_on_success=True)
 
     user.phone_number = phone_number_in.phone_number
-    storage.users.update(user)
+    service.database.users.update(user)
     return standard_response(_("phone number updated successfully."))
 
 
 @router.post('/me/picture/', response_model=PictureOut)
 def create_picture_url(
     picture_in: PictureIn,
-    user: Union[RealUser, LegalUser] = Depends(get_current_user)
+    user: Union[RealUser, LegalUser] = Depends(get_current_user),
+    service: AuthenticationService = Depends(get_srv)
     ):
     """ Reserves an object in S3 and returns the presigend url. """
 
-    signed_url = s3.create_profile_picture_url(picture_in, str(user.id))  
+    signed_url = service.create_profile_picture_url(picture_in, str(user.id))  
     return PictureOut(url=signed_url)
