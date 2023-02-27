@@ -66,10 +66,18 @@ class MemoryUserDatabase(UserCollection):
         return self.db["users"][0]
 
     def check_by_national_code(self, national_code: NationalCodeField) -> bool: 
-        return True if self.get_by_national_code(national_code) else False
+        try:
+            self.get_by_national_code(national_code)
+            return True
+        except errors.UserDoesNotExist:
+            return False
 
     def check_by_company_code(self, company_code: CompanyCodeField) -> bool: 
-        return True if self.get_by_company_code(company_code) else False
+        try:
+            self.get_by_company_code(company_code)
+            return True
+        except errors.UserDoesNotExist:
+            return False
 
     def get_by_id(self, user_id: str) -> Union[RealUser, LegalUser]:
         for user in self.db["users"]:

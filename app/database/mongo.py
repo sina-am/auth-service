@@ -19,7 +19,7 @@ class MongoRoleCollection(RoleCollection):
         self.collection = self.db.roles
     
     def create(self, role: Role) -> Role:
-        if self.get_by_platform(role.platform):
+        if self.__check_if_exists(role.platform):
             raise errors.RoleAlreadyExist("role already exist.")
 
         result = self.collection.insert_one(role.dict())
@@ -35,9 +35,8 @@ class MongoRoleCollection(RoleCollection):
             return Role(**result)
         raise errors.RoleDoesNotExist(f"role with platform {platform} don't exist.")
 
-    def __check_if_exists(self, role: Role) -> bool:
-        result = self.collection.find_one({"$exists": {"platform": role.platform}})
-        print("from __check_if_exists", result)
+    def __check_if_exists(self, platform: str) -> bool:
+        result = self.collection.find_one({"platform": platform})
         if result:
             return True
         return False
@@ -115,6 +114,8 @@ class MongoUserCollection(UserCollection):
     def create(self, user: Union[RealUser, LegalUser]) -> Union[RealUser, LegalUser]:
         self.__error_on_invalid_roles(user.roles)
         self.__error_on_duplicate_key(user)
+        if user.contact_information and user.contact_information.city_id:
+            self.__error_on_invalid_city(user.contact_information.city_id)
 
         document = user.dict(exclude_none=True)
         result = self.collection.insert_one(document) 

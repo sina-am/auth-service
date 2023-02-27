@@ -13,8 +13,7 @@ from app.models.user import RealUser, LegalUser, RealUserCreationIn
 from app.apis.response import standard_response
 from app.models.verification import RealUserCodeVerificationIn
 from app.utils.translation import _
-from app.services import AuthenticationService, get_srv
-from app.database import Database, get_db
+from app.services import AuthService, get_srv
 
 
 router = APIRouter(prefix="/users", tags=['Users'])
@@ -24,27 +23,27 @@ router = APIRouter(prefix="/users", tags=['Users'])
 async def create_user(
     user_in: Union[RealUserCreationIn, LegalUserCreationIn],
     admin: Union[RealUser, LegalUser] = Depends(get_current_admin_user),
-    db: Database = Depends(get_db)
+    srv: AuthService = Depends(get_srv)
     ):
-    db.users.create(user_in.to_model())
+    srv.database.users.create(user_in.to_model())
     return standard_response(_("user created"))
 
 
 @router.get('/', response_model=List[ProfileOut])
 async def get_users(
     admin: Union[RealUser, LegalUser] = Depends(get_current_admin_user),
-    db: Database = Depends(get_db)
+    srv: AuthService = Depends(get_srv)
     ):
     return list(map(
         lambda user: ProfileOut.from_db(user),  # type: ignore
-        db.users.get_all()
+        srv.database.users.get_all()
     )) 
 
 
 @router.get("/me/", response_model=ProfileOut)
 async def get_my_user(
     payload: JwtPayload = Depends(get_current_token),
-    service: AuthenticationService = Depends(get_srv)
+    service: AuthService = Depends(get_srv)
     ):
     """
     Get login user's profile.
@@ -66,7 +65,7 @@ async def get_my_user(
 async def update_my_user(
     user_in: UserUpdateIn, 
     user: Union[RealUser, LegalUser] = Depends(get_current_user),
-    service: AuthenticationService = Depends(get_srv)
+    service: AuthService = Depends(get_srv)
     ):
     """
     Update user's profile.
@@ -95,10 +94,10 @@ async def update_my_user(
 )
 def change_password(
     password_in: PasswordUpdateIn,
-    service: AuthenticationService = Depends(get_srv)
+    service: AuthService = Depends(get_srv)
     ):
     """ Change user password. """
-    service.verification.verify_and_validate(password_in.verification, delete_on_success=True)
+    service.verification.verify(password_in.verification, delete_on_success=True)
     if isinstance(password_in.verification, RealUserCodeVerificationIn):
         user = service.database.users.get_by_national_code(password_in.verification.national_code)
     else:
@@ -118,7 +117,7 @@ def change_password(
 def change_phone_number(
     phone_number_in: PhoneNumberUpdateIn,
     user: Union[RealUser, LegalUser] = Depends(get_current_user),
-    service: AuthenticationService = Depends(get_srv)
+    service: AuthService = Depends(get_srv)
     ):
     """
     Change phone number.
@@ -129,7 +128,7 @@ def change_phone_number(
 
     if phone_number_in.phone_number == user.phone_number:
         raise HTTPException(status_code=400, detail="can't use the same phone number")
-    service.verification.verify_and_validate(phone_number_in.verification, delete_on_success=True)
+    service.verification.verify(phone_number_in.verification, delete_on_success=True)
 
     user.phone_number = phone_number_in.phone_number
     service.database.users.update(user)
@@ -140,7 +139,7 @@ def change_phone_number(
 def create_picture_url(
     picture_in: PictureIn,
     user: Union[RealUser, LegalUser] = Depends(get_current_user),
-    service: AuthenticationService = Depends(get_srv)
+    service: AuthService = Depends(get_srv)
     ):
     """ Reserves an object in S3 and returns the presigend url. """
 

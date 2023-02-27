@@ -46,9 +46,9 @@ class MemoryCache(Cache):
         self.cache: Dict[str, dict] = {} 
 
     def get(self, key: str) -> Union[dict, None]:
-        self.cache.get(key)
+        return self.cache.get(key)
     
-    def set(self, key: str, value: dict, ttl: Union[float, timedelta]):
+    def set(self, key: str, value: dict, ttl: Union[float, timedelta] = 0):
         self.cache.update({key: value})
 
     def delete(self, key: str):
@@ -62,14 +62,3 @@ class MemoryCache(Cache):
     
     def ping(self) -> bool:
         return True
-
-
-__cache: Cache
-def init_cache(cache: Cache):
-    global __cache
-    __cache = cache
-
-def get_cache() -> Cache:
-    if not __cache:
-        raise TypeError()
-    return __cache

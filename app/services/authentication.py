@@ -1,28 +1,33 @@
 from typing import Union
 
-from app.cache import get_cache 
+from app.cache import Cache 
 from app.core.security import verify_password
 from app.models.profile import PictureIn
 from app.models.role import Role, UserRole
 from app.models.user import LegalUser, RealUser, RealUserRegistrationIn, LegalUserRegistrationIn
 from app.models.auth import RealUserAuthenticationIn, LegalUserAuthenticationIn
-from app.database import get_db, errors as dberrors
+from app.database import errors as dberrors, Database
 from app.services.s3 import S3Service
 from app.services.broker import Broker
 from app.services.verification import SMSVerificationService
+from app.services.notification import SMSNotification
 from app.core.errors import MyException
 
 
 class UnAuthorizedError(MyException):
     pass
 
+class AuthService:
+    def __init__(self, 
+                 broker: Broker, 
+                 db: Database,
+                 cache: Cache,
+                 verification: SMSVerificationService):
 
-class AuthenticationService:
-    def __init__(self, broker: Broker, verification: SMSVerificationService):
         self.broker = broker
-        self.database = get_db() 
+        self.database = db 
         self.verification = verification
-        self.cache = get_cache() 
+        self.cache = cache 
         self.s3 = S3Service('images/profile')
 
     def create_profile_picture_url(self, info: PictureIn, user_id: str) -> str:
@@ -75,3 +80,12 @@ class AuthenticationService:
         )
 
         return self.database.users.create(admin) # type: ignore
+
+
+def authentication_factory(db: Database, cache: Cache, broker: Broker, notification: SMSNotification) -> AuthService:
+    return AuthService(
+        broker=broker,
+        db=db,
+        cache=cache,
+        verification=SMSVerificationService(notification=notification, cache=cache, db=db)
+    )

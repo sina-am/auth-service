@@ -1,17 +1,14 @@
-from app.services.authentication import AuthenticationService
-from app.services.verification import SMSVerificationService
-from app.database import Database
-from app.cache import Cache
+from app.services.authentication import AuthService
 
 
-__srv: AuthenticationService
+__srv: AuthService
 
-def init_srv(srv: AuthenticationService):
+def init_srv(srv: AuthService):
     global __srv
     __srv = srv
 
 
-def get_srv() -> AuthenticationService:
+def get_srv() -> AuthService:
     # TODO: raise a proper error
     if not __srv:
         raise TypeError("service is not initiated yet")

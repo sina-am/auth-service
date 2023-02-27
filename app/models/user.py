@@ -78,8 +78,8 @@ class RealUser(User):
             last_name=last_name,
             password=get_password_hash(plain_password), 
             roles=roles,
-            last_login=datetime.utcnow(),
-            created_at=datetime.utcnow(),
+            last_login=datetime.utcnow().replace(microsecond=0),
+            created_at=datetime.utcnow().replace(microsecond=0),
             picture_url=path.get_default_profile_picture_url()
         )
 

@@ -1,6 +1,7 @@
 import abc
+import asyncio
 import json
-from typing import Callable
+from typing import Callable, Any, Dict
 from aio_pika import Message, connect_robust, connect
 from aio_pika.abc import AbstractIncomingMessage
 from app.core.logging import logger
@@ -25,17 +26,41 @@ class JsonSerializer(Serializer):
 
 class Broker(abc.ABC):
     @abc.abstractmethod
-    async def ping(self): 
+    async def ping(self) -> bool: 
         """ Checks for broker health """
         raise NotImplementedError
 
     @abc.abstractmethod    
-    async def consume(self, loop):
+    async def consume(self, loop, queue_name: str, on_message: Callable[[dict], dict]):
         raise NotImplementedError
     
     @abc.abstractmethod
     async def publish(self, queue_name: str, message: dict):
         raise NotImplementedError
+
+
+class MemoryBroker(Broker):
+    def __init__(self, delay: float = 1) -> None:
+        self.delay = delay
+        self.queues: Dict[str, Any]
+
+    async def ping(self):
+        return True
+
+    async def consume(self, loop, queue_name: str, on_message: Callable[[dict], dict]):
+        for i in range(5):
+            await asyncio.sleep(self.delay)
+            queue = self.queues.get(queue_name)
+            if not queue or len(queue) == 0:
+                continue
+            on_message(queue.pop(0))
+
+    async def publish(self, queue_name: str, message: dict):
+        if not self.queues[queue_name]:
+            self.queues[queue_name] = []
+
+        self.queues[queue_name].append(message)
+
 
 class RabbitMQ(Broker):
     def __init__(self, 
@@ -51,13 +76,17 @@ class RabbitMQ(Broker):
         self.password = password
         self.serializer = serializer
 
-    async def ping(self):
-        await connect(
-            host=self.address,
-            port=self.port, 
-            login=self.username,
-            password=self.password,
-        )
+    async def ping(self) -> bool:
+        try:
+            await connect(
+                host=self.address,
+                port=self.port, 
+                login=self.username,
+                password=self.password,
+            )
+            return True
+        except Exception:
+            return False
 
     async def publish(self, queue_name: str, message: dict):
         connection = await connect_robust(
@@ -71,7 +100,7 @@ class RabbitMQ(Broker):
         await channel.default_exchange.publish(
             Message(
                 body=self.serializer.encode(message),
-                app_id=1,
+                content_type='application/json'
             ), routing_key=queue_name
         )
 
@@ -95,8 +124,7 @@ class RabbitMQ(Broker):
                         assert message.reply_to is not None
 
                         response = on_message(self.serializer.decode(message.body))
-
-                        await self.exchange.publish(
+                        await channel.default_exchange.publish(
                             Message(
                                 body=self.serializer.encode(response),
                                 content_type='json/application',

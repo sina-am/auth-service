@@ -2,8 +2,7 @@ from unittest import TestCase
 from fastapi.testclient import TestClient
 from fastapi import status
 
-from app.cache import MemoryCache, init_cache 
-from app.database import MemoryDatabase, init_db
+from app.services import init_srv
 from app.models.role import UserRole 
 from app.main import app
 from app.apis.depends import get_current_admin_user
@@ -12,24 +11,13 @@ from app.models.user import RealUser, LegalUser, RealUserCreationIn, LegalUserCr
 from app.models.response import StandardResponse
 
 
-def fake_admin() -> RealUser:
-    return RealUser.new_user(
-        national_code='1111111111',
-        phone_number='1111111111',
-        first_name='test',
-        last_name='test',
-        plain_password='test',
-        roles=[UserRole(platform='test.com', names=['admin'])]
-    )
+from tests.fake import fake_service, fake_admin
 
 
 class TestHealthAPIs(TestCase):
     def setUp(self) -> None:
-        self.db = MemoryDatabase()
-        init_db(self.db)
-
-        self.cache = MemoryCache()
-        init_cache(self.cache)
+        self.srv = fake_service()
+        init_srv(self.srv)
 
         app.dependency_overrides[get_current_admin_user] = lambda: fake_admin() 
         self.client = TestClient(app)
@@ -49,8 +37,8 @@ class TestHealthAPIs(TestCase):
 
 class TestInformationAPIs(TestCase):
     def setUp(self) -> None:
-        self.db = MemoryDatabase()
-        init_db(self.db)
+        self.srv = fake_service()
+        init_srv(self.srv)
 
         app.dependency_overrides[get_current_admin_user] = lambda: fake_admin() 
         self.client = TestClient(app)
@@ -65,7 +53,7 @@ class TestInformationAPIs(TestCase):
                 City(name='test_city_3'), # type: ignore
             ]
         )
-        p_db = self.db.provinces.create(p)
+        p_db = self.srv.database.provinces.create(p)
 
         res = self.client.get('api/v1/info/provinces/')
 
@@ -90,8 +78,8 @@ class TestInformationAPIs(TestCase):
 
 class TestUserAPIs(TestCase):
     def setUp(self) -> None:
-        self.db = MemoryDatabase()
-        init_db(self.db)
+        self.srv = fake_service()
+        init_srv(self.srv)
 
         app.dependency_overrides[get_current_admin_user] = lambda: fake_admin() 
         self.client = TestClient(app)
@@ -115,7 +103,7 @@ class TestUserAPIs(TestCase):
         assert res.status_code == 200
         assert StandardResponse(**res.json()).message.en == 'user created'
 
-        assert self.db.users.get_by_national_code('1111111111') != None
+        assert self.srv.database.users.get_by_national_code('1111111111') != None
 
     def test_create_user_invalid_national_code(self):
         user_in = {
@@ -204,101 +192,10 @@ class TestUserAPIs(TestCase):
             )
         ]
         for user in users:
-            self.db.users.create(user)
+            self.srv.database.users.create(user)
 
         res = self.client.get('api/v1/users/')
         assert res.status_code == status.HTTP_200_OK
         users_db = res.json()
         assert ProfileOut(**users_db[0]).real_user
         assert ProfileOut(**users_db[1]).legal_user
-
-
-# class TestAPI(TestCase):
-#     def setUp(self):
-#         self.client = TestClient(app)
-#         database.roles.create(Role(platform='*', names=['admin']))
-        
-#         self.admin = RealUser.new_user(
-#             '0000000000', 
-#             '0000000000', 
-#             'admin', 
-#             'admin', 
-#             'adminpassword', 
-#             roles=[UserRole(platform='*', names=['admin'])]
-#         )
-#         database.users.create(self.admin)
-
-
-#     def get_admin_token(self) -> str:
-#         return get_access_token(self.admin, '*', 'admin')
-
-#     def get_headers(self) -> str:
-#         return {'Authorization': f'bearer {self.get_admin_token()}'}
-
-#     def test_check_mongodb(self):
-#         response = self.client.get('/api/v1/health/mongodb/', headers=self.get_headers())
-#         self.assertEqual(response.status_code, 200)
-        
-#     def test_create_user_invalid_platform(self):
-#         user = RealUserCreationIn(
-#             national_code="1111111111",
-#             phone_number="1111111111",
-#             roles=[UserRole(platform='test.com', names=['staff'])],
-#             first_name="test",
-#             last_name="test",
-#             password1="password",
-#             password2="password"
-#         ) 
-
-#         response = self.client.post('/api/v1/users/', json=user.dict(), headers=self.get_headers())
-
-#         self.assertEqual(response.status_code, 400)
-    
-#     def test_create_user(self):
-#         database.roles.create(Role(platform='test.com', names=['staff']))
-#         user = RealUserCreationIn(
-#             national_code="1111111111",
-#             phone_number="1111111111",
-#             roles=[UserRole(platform='test.com', names=['staff'])],
-#             first_name="test",
-#             last_name="test",
-#             password1="password",
-#             password2="password"
-#         ) 
-
-#         response = self.client.post('/api/v1/users/', json=user.dict(), headers=self.get_headers())
-
-#         self.assertEqual(response.status_code, 200)
-#         self.assertIsNotNone(database.users.get_by_national_code('1111111111'))
-
-#     def tearDown(self):
-#         database.users.collection.delete_many({})
-#         database.roles.collection.delete_many({})
-
-
-# class ProvinceAPIsTest(TestCase):
-#     def setUp(self, mock_service) -> None:
-#         app.dependency_overrides[get_srv] = fake_get_srv() # type: ignore
-#         self.client = TestClient(app)
-#         service = fake_get_srv()
-#         self.admin = service.create_admin(
-#             national_code='0000000000', 
-#             phone_number='0000000000', 
-#             first_name='admin', 
-#             last_name='admin', 
-#             password='adminpassword' 
-#         )
-#         self.headers = {'Authorization': f'bearer {get_admin_token(self.admin)}'}
-
-#     def test_create_province_api(self):
-#         p_in = ProvinceIn(
-#             name="test", 
-#             cities=[
-#                 CityIn(name="test1"), 
-#                 CityIn(name="test2")
-#             ]
-#         )
-
-#         res = self.client.post("/api/v1/info/provinces/", json=p_in.dict(), headers=self.headers)
-#         self.assertEqual(res.status_code, 200)
-

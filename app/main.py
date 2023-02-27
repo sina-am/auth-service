@@ -7,12 +7,12 @@ from fastapi.openapi.utils import get_openapi
 
 from app.models.response import Message, StandardResponse
 from app.apis.router import router
-from app.services import (RabbitMQ, Broker,
-                          init_srv, AuthenticationService, 
-                          SMSVerificationService, FakeSMSNotification)
+from app.services import (
+    RabbitMQ, authentication_factory,
+    init_srv, AuthService, MelipayamakSMSNotification)
 from app.services.rpc import call_service
-from app.database import MongoDatabase, init_db
-from app.cache import RedisCache, init_cache
+from app.database import MongoDatabase
+from app.cache import RedisCache
 from app.core.config import settings
 from app.core import errors
 
@@ -64,35 +64,34 @@ app.openapi = custom_openapi
 
 @app.on_event('startup')
 async def startup():
-    db = MongoDatabase(settings.mongodb.uri, settings.mongodb.database)
-    init_db(db)
-
-    cache = RedisCache(
-        settings.redis.address.host,  # type: ignore
-        settings.redis.address.port,  # type: ignore
-        db=0,
-        password=settings.redis.password  # type: ignore
-    )
-    init_cache(cache)
-
-    broker: Broker = RabbitMQ(
-        settings.rabbitmq.address,
-        settings.rabbitmq.port,
-        settings.rabbitmq.username,
-        settings.rabbitmq.password
-    )
-
-    service = AuthenticationService(
-        broker=broker,
-        verification=SMSVerificationService(
-            notification=FakeSMSNotification()
+    service = authentication_factory(
+        db=MongoDatabase(
+            settings.mongodb.uri, 
+            settings.mongodb.database
+        ),
+        broker=RabbitMQ(
+            settings.rabbitmq.address,
+            settings.rabbitmq.port,
+            settings.rabbitmq.username,
+            settings.rabbitmq.password
+        ),
+        cache=RedisCache(
+            settings.redis.address.host,  # type: ignore
+            settings.redis.address.port,  # type: ignore
+            db=0,
+            password=settings.redis.password  # type: ignore
+        ),
+        notification=MelipayamakSMSNotification(
+            phone=settings.melipayamak.phone,  # type: ignore
+            username=settings.melipayamak.username, # type: ignore
+            password=settings.melipayamak.password # type: ignore
         )
     )
     init_srv(service)
 
-    
     loop = asyncio.get_event_loop()
-    asyncio.ensure_future(broker.consume(loop, 'auth_srv', call_service))
+    asyncio.ensure_future(service.broker.consume(
+        loop, 'auth_srv', call_service))
 
 
 @app.exception_handler(RequestValidationError)

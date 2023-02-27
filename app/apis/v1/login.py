@@ -6,7 +6,7 @@ from fastapi.security import OAuth2PasswordRequestForm, OAuth2PasswordBearer
 from app.models.auth import LegalUserAuthenticationIn, RealUserAuthenticationIn
 from app.models.token import AccessTokenOut
 from app.services.token import get_access_token
-from app.services import get_srv, AuthenticationService 
+from app.services import get_srv, AuthService 
 from app.types.fields import CompanyCodeField, NationalCodeField
 from app.models.base import PlatformSpecificationIn
 
@@ -18,7 +18,7 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/token/")
 @router.post("/token/")
 async def login_for_swagger(
     credentials: OAuth2PasswordRequestForm = Depends(),
-    service: AuthenticationService = Depends(get_srv) 
+    srv: AuthService = Depends(get_srv) 
     ):
     """
     Authentication endpoint for users that want to use swagger documentation.
@@ -39,7 +39,7 @@ async def login_for_swagger(
             current_platform=PlatformSpecificationIn(platform="*", role="admin")
         )
 
-    user = service.authenticate(cred)
+    user = srv.authenticate(cred)
 
     access_token = get_access_token(
         user, 
@@ -53,14 +53,14 @@ async def login_for_swagger(
 @router.post("/login/", response_model=AccessTokenOut)
 async def login_user(
     credentials: Union[RealUserAuthenticationIn, LegalUserAuthenticationIn],
-    service: AuthenticationService = Depends(get_srv) 
+    srv: AuthService = Depends(get_srv) 
     ):
     """
-    Authenticate users from diffrent platforms
+    Authenticate users from different platforms
 
     **platform_name**: Platform that user came from:
     """
-    user = service.authenticate(credentials)
+    user = srv.authenticate(credentials)
         
     access_token = get_access_token(
         user, 
