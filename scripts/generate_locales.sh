@@ -6,7 +6,7 @@ if [ "$DOCKER_ENV" = true ]; then
     msgfmt -o locales/fa/LC_MESSAGES/base.mo locales/fa/LC_MESSAGES/base
 
 else
-    /usr/lib/python3.10/Tools/i18n/pygettext.py -d app/models -o locales/base.pot *
+    pygettext.py -d app/models -o locales/base.pot *
     msgfmt -o locales/en/LC_MESSAGES/base.mo locales/en/LC_MESSAGES/base
     msgfmt -o locales/fa/LC_MESSAGES/base.mo locales/fa/LC_MESSAGES/base
 fi

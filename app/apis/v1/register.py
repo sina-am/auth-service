@@ -16,9 +16,9 @@ router = APIRouter(prefix='/registration', tags=['Registration'])
     response_model=StandardResponse, 
     responses={400: {'model': StandardResponse}}
 )
-def register_legal_user(
+async def register_legal_user(
     user_in: Union[RealUserRegistrationIn, LegalUserRegistrationIn],
     service: AuthenticationService = Depends(get_srv) 
     ):
-    service.register(user_in)
+    await service.register(user_in)
     return standard_response(_('user created'))

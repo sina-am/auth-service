@@ -1,5 +1,7 @@
 from unittest import TestCase
 from fastapi.testclient import TestClient
+from fastapi import status
+
 from app.cache import MemoryCache, init_cache 
 from app.database import MemoryDatabase, init_db
 from app.models.role import UserRole 
@@ -8,7 +10,6 @@ from app.apis.depends import get_current_admin_user
 from app.models.province import CityIn, City, Province, ProvinceIn
 from app.models.user import RealUser, LegalUser, RealUserCreationIn, LegalUserCreationIn, ProfileOut
 from app.models.response import StandardResponse
-from fastapi import status
 
 
 def fake_admin() -> RealUser:

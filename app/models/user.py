@@ -293,7 +293,7 @@ class ProfileOut(BaseModelOut):
     @classmethod
     def from_db(cls, 
         user: Union[RealUser, LegalUser], 
-        current_platform: PlatformSpecificationOut | None = None) -> "ProfileOut":
+        current_platform: Union[PlatformSpecificationOut, None] = None) -> "ProfileOut":
 
         return cls(
             _id=user.id,

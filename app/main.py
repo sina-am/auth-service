@@ -3,15 +3,18 @@ from fastapi import FastAPI, status, HTTPException
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.exceptions import RequestValidationError
+from fastapi.openapi.utils import get_openapi
+
 from app.models.response import Message, StandardResponse
 from app.apis.router import router
-from app.services import RabbitMQ
-from app.services import init_srv, AuthenticationService, SMSVerificationService, FakeSMSNotification
+from app.services import (RabbitMQ, Broker,
+                          init_srv, AuthenticationService, 
+                          SMSVerificationService, FakeSMSNotification)
+from app.services.rpc import call_service
 from app.database import MongoDatabase, init_db
 from app.cache import RedisCache, init_cache
 from app.core.config import settings
 from app.core import errors
-from fastapi.openapi.utils import get_openapi
 
 
 """
@@ -30,6 +33,7 @@ app.add_middleware(
 )
 app.include_router(router)
 
+
 def custom_openapi():
     if app.openapi_schema:
         return app.openapi_schema
@@ -40,17 +44,17 @@ def custom_openapi():
         routes=app.routes,
     )
     openapi_schema["components"]["schemas"]["HTTPValidationError"] = {
-                "title": "HTTPValidationError",
-                "required": [
-                    "message"
-                ],
-                "type": "object",
+        "title": "HTTPValidationError",
+        "required": [
+            "message"
+        ],
+        "type": "object",
                 "properties": {
                     "message": {
                         "$ref": "#/components/schemas/Message"
                     }
-                }
-            }
+        }
+    }
     app.openapi_schema = openapi_schema
     return app.openapi_schema
 
@@ -64,44 +68,50 @@ async def startup():
     init_db(db)
 
     cache = RedisCache(
-        settings.redis.address.host, # type: ignore
-        settings.redis.address.port, # type: ignore 
-        db=0, 
-        password=settings.redis.password # type: ignore
+        settings.redis.address.host,  # type: ignore
+        settings.redis.address.port,  # type: ignore
+        db=0,
+        password=settings.redis.password  # type: ignore
     )
     init_cache(cache)
 
+    broker: Broker = RabbitMQ(
+        settings.rabbitmq.address,
+        settings.rabbitmq.port,
+        settings.rabbitmq.username,
+        settings.rabbitmq.password
+    )
+
     service = AuthenticationService(
+        broker=broker,
         verification=SMSVerificationService(
             notification=FakeSMSNotification()
         )
     )
     init_srv(service)
 
-    rabbitmq =  RabbitMQ(
-        settings.rabbitmq.address, 
-        settings.rabbitmq.port, 
-        settings.rabbitmq.username, 
-        settings.rabbitmq.password
-    )
-
+    
     loop = asyncio.get_event_loop()
-    asyncio.ensure_future(rabbitmq.consume(loop))
+    asyncio.ensure_future(broker.consume(loop, 'auth_srv', call_service))
 
 
 @app.exception_handler(RequestValidationError)
 async def validation_exception_handler(request, exc: RequestValidationError):
     return JSONResponse(
-        content=StandardResponse(message=Message(en=exc.errors()[0]['msg'], fa=None)).dict(),
+        content=StandardResponse(message=Message(
+            en=exc.errors()[0]['msg'], fa=None)).dict(),
         status_code=status.HTTP_422_UNPROCESSABLE_ENTITY
     )
-  
+
+
 @app.exception_handler(HTTPException)
 async def exception_handler(request, exc: HTTPException):
     return JSONResponse(
-        content=StandardResponse(message=Message(en=exc.detail, fa=None)).dict(),
+        content=StandardResponse(message=Message(
+            en=exc.detail, fa=None)).dict(),
         status_code=exc.status_code
     )
+
 
 @app.exception_handler(errors.MyException)
 async def custom_error_handler(request, exc: errors.MyException):

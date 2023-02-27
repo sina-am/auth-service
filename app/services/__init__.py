@@ -4,4 +4,4 @@ from .notification import (
     SMSNotification)
 from .verification import SMSVerificationService
 from .services import get_srv, init_srv
-from .rpc.consumer import RabbitMQ
+from .broker import Broker, RabbitMQ

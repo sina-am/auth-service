@@ -8,6 +8,7 @@ from app.models.user import LegalUser, RealUser, RealUserRegistrationIn, LegalUs
 from app.models.auth import RealUserAuthenticationIn, LegalUserAuthenticationIn
 from app.database import get_db, errors as dberrors
 from app.services.s3 import S3Service
+from app.services.broker import Broker
 from app.services.verification import SMSVerificationService
 from app.core.errors import MyException
 
@@ -17,7 +18,8 @@ class UnAuthorizedError(MyException):
 
 
 class AuthenticationService:
-    def __init__(self, verification: SMSVerificationService):
+    def __init__(self, broker: Broker, verification: SMSVerificationService):
+        self.broker = broker
         self.database = get_db() 
         self.verification = verification
         self.cache = get_cache() 
@@ -49,9 +51,13 @@ class AuthenticationService:
         self.database.users.update_last_login(user)
         return user
 
-    def register(self, u: Union[RealUserRegistrationIn, LegalUserRegistrationIn]):
+    async def register(self, u: Union[RealUserRegistrationIn, LegalUserRegistrationIn]):
         self.verification.verify_and_validate(u.verification)
-        return self.database.users.create(u.to_model())
+        new_user = self.database.users.create(u.to_model())
+        await self.broker.publish(
+            queue_name='registration',
+            message=new_user.dict()
+        )
 
     def create_admin(self, national_code, phone_number, first_name, last_name, password) -> RealUser:
         try:
