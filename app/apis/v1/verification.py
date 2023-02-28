@@ -16,7 +16,7 @@ router = APIRouter(prefix='/verification', tags=['Verification'])
 
 
 @router.post('/sms/send/', response_model=StandardResponse, summary="Send SMS Verification")
-await def send_sms_code(
+async def send_sms_code(
     v: Union[RealUserSendSMSCodeIn, LegalUserSendSMSCodeIn],
     service: AuthService = Depends(get_srv)
 ):
@@ -36,8 +36,7 @@ await def send_sms_code(
         await service.verification.send(v)
     except VerificationCodeAlreadySendError:
         return standard_response(_('already send'))
-        
-    background_tasks.add_task(service.verification.send, v)
+
     return standard_response(_('sent'))
 
 
@@ -50,5 +49,5 @@ async def verify_sms_code(
     v: Union[LegalUserCodeVerificationIn, RealUserCodeVerificationIn],
     service: AuthService = Depends(get_srv)
 ):
-    service.verification.verify(v)
+    await service.verification.verify(v)
     return standard_response(_('verified'))
