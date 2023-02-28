@@ -6,11 +6,10 @@ from app.services import AuthService, get_srv
 from app.database import errors
 
 
-
 async def get_current_token(
     token: str = Depends(oauth2_scheme),
-    service: AuthService = Depends(get_srv) 
-    ):
+    service: AuthService = Depends(get_srv)
+):
     try:
         token_data = decode_access_token(token)
     except Exception:
@@ -21,10 +20,11 @@ async def get_current_token(
         raise HTTPCredentialError()
     return token_data
 
+
 async def get_current_user(
     token: str = Depends(oauth2_scheme),
-    service: AuthService = Depends(get_srv) 
-    ):
+    service: AuthService = Depends(get_srv)
+):
     try:
         token_data = decode_access_token(token)
     except Exception:
@@ -35,10 +35,11 @@ async def get_current_user(
     except errors.UserDoesNotExist:
         raise HTTPCredentialError()
 
+
 async def get_current_admin_user(
     token: str = Depends(oauth2_scheme),
-    service: AuthService = Depends(get_srv) 
-    ):
+    service: AuthService = Depends(get_srv)
+):
     try:
         payload = decode_access_token(token)
     except Exception:
@@ -48,7 +49,7 @@ async def get_current_admin_user(
         user = service.database.users.get_by_id(payload.user.id)
     except errors.UserDoesNotExist:
         raise HTTPCredentialError()
-    
+
     if payload.current_platform.platform == "*":
         if payload.current_platform.role == "admin":
             if user.has_role(platform="*", role_name="admin"):

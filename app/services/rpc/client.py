@@ -4,7 +4,8 @@ import uuid
 from typing import MutableMapping
 
 from aio_pika import Message, connect_robust
-from aio_pika.abc import (AbstractChannel, AbstractConnection, AbstractIncomingMessage, AbstractQueue)
+from aio_pika.abc import (
+    AbstractChannel, AbstractConnection, AbstractIncomingMessage, AbstractQueue)
 from app.core.config import settings
 
 
@@ -21,8 +22,8 @@ class AuthenticationRpcClient:
     async def connect(self) -> "AuthenticationRpcClient":
         self.connection = await connect_robust(
             host=settings.rabbitmq.address,
-            port=settings.rabbitmq.port, 
-            login=settings.rabbitmq.username, 
+            port=settings.rabbitmq.port,
+            login=settings.rabbitmq.username,
             password=settings.rabbitmq.password,
             loop=self.loop
         )

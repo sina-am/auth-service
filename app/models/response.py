@@ -5,8 +5,8 @@ from app.utils.translation import fa
 
 class Message(BaseModel):
     en: str
-    fa: Optional[str] 
-     
+    fa: Optional[str]
+
     @validator("fa", pre=True, always=True)
     def translate_message(cls, v, values, **kwargs):
         if not v:

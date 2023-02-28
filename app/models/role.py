@@ -1,12 +1,13 @@
 from typing import List, Optional
 from app.models.base import MongoModel, BaseModelIn
-from app.types.fields import ObjectIdField 
+from app.types.fields import ObjectIdField
 from pydantic import BaseModel, Field
+from bson import ObjectId
 
 
 class Role(MongoModel):
     id: Optional[ObjectIdField] = Field(alias='_id')
-    platform: str 
+    platform: str
     names: List[str]
 
 
@@ -17,11 +18,12 @@ class UserRole(BaseModel):
 
 
 class RoleCreationIn(BaseModelIn):
-    platform: str 
+    platform: str
     names: List[str]
 
     def to_model(self) -> Role:
         return Role(
+            _id=ObjectIdField(ObjectId()),
             platform=self.platform,
             names=self.names
         )

@@ -11,16 +11,16 @@ class JwtUser(MongoModel):
     roles: List[UserRole]
     type: UserTypeField
 
-    class Config:  
+    class Config:
         use_enum_values = True
 
-        
+
 class JwtPayload(BaseModel):
     user: JwtUser
     current_platform: PlatformSpecificationOut
     expiration: datetime
 
-    class Config:  
+    class Config:
         use_enum_values = True
 
 

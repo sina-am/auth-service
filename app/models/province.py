@@ -4,15 +4,15 @@ from app.models.base import MongoModel, BaseModelIn
 from app.types.fields import ObjectIdField
 from bson import ObjectId
 
-   
+
 class City(MongoModel):
     id: Optional[ObjectIdField] = Field(alias='_id')
     name: str
- 
+
     @validator("id", pre=True, always=True)
     def generate_id_if_none(cls, v: ObjectId):
-        return ObjectId() if not v else v 
-        
+        return ObjectId() if not v else v
+
 
 class Province(MongoModel):
     id: Optional[ObjectIdField] = Field(alias='_id')
@@ -20,13 +20,12 @@ class Province(MongoModel):
     cities: List[City]
 
 
-
 class CityIn(BaseModelIn):
     name: str
 
     def to_model(self) -> City:
         return City(
-            name=self.name # type: ignore
+            name=self.name  # type: ignore
         )
 
 

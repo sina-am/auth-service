@@ -11,11 +11,11 @@ class Serializer(abc.ABC):
     @abc.abstractmethod
     def encode(self, message: dict) -> bytes:
         raise NotImplementedError
-    
+
     @abc.abstractmethod
     def decode(self, message: bytes) -> dict:
         raise NotImplementedError
-    
+
 
 class JsonSerializer(Serializer):
     def encode(self, message: dict) -> bytes:
@@ -24,16 +24,17 @@ class JsonSerializer(Serializer):
     def decode(self, message: bytes) -> dict:
         return json.loads(message.decode('utf-8'))
 
+
 class Broker(abc.ABC):
     @abc.abstractmethod
-    async def ping(self) -> bool: 
+    async def ping(self) -> bool:
         """ Checks for broker health """
         raise NotImplementedError
 
-    @abc.abstractmethod    
+    @abc.abstractmethod
     async def consume(self, loop, queue_name: str, on_message: Callable[[dict], dict]):
         raise NotImplementedError
-    
+
     @abc.abstractmethod
     async def publish(self, queue_name: str, message: dict):
         raise NotImplementedError
@@ -42,7 +43,7 @@ class Broker(abc.ABC):
 class MemoryBroker(Broker):
     def __init__(self, delay: float = 1) -> None:
         self.delay = delay
-        self.queues: Dict[str, Any]
+        self.queues: Dict[str, Any] = {}
 
     async def ping(self):
         return True
@@ -56,17 +57,17 @@ class MemoryBroker(Broker):
             on_message(queue.pop(0))
 
     async def publish(self, queue_name: str, message: dict):
-        if not self.queues[queue_name]:
+        if not self.queues.get(queue_name):
             self.queues[queue_name] = []
 
         self.queues[queue_name].append(message)
 
 
 class RabbitMQ(Broker):
-    def __init__(self, 
-                 address: str, 
-                 port: int, 
-                 username: str = "", 
+    def __init__(self,
+                 address: str,
+                 port: int,
+                 username: str = "",
                  password: str = "",
                  serializer: Serializer = JsonSerializer()
                  ) -> None:
@@ -80,7 +81,7 @@ class RabbitMQ(Broker):
         try:
             await connect(
                 host=self.address,
-                port=self.port, 
+                port=self.port,
                 login=self.username,
                 password=self.password,
             )
@@ -91,7 +92,7 @@ class RabbitMQ(Broker):
     async def publish(self, queue_name: str, message: dict):
         connection = await connect_robust(
             host=self.address,
-            port=self.port, 
+            port=self.port,
             login=self.username,
             password=self.password
         )
@@ -107,7 +108,7 @@ class RabbitMQ(Broker):
     async def consume(self, loop, queue_name: str, on_message: Callable[[dict], dict]):
         connection = await connect_robust(
             host=self.address,
-            port=self.port, 
+            port=self.port,
             login=self.username,
             password=self.password,
             loop=loop
@@ -121,9 +122,10 @@ class RabbitMQ(Broker):
             async for message in iterator:
                 try:
                     async with message.process(requeue=False):
-                        assert message.reply_to is not None
+                        assert message.reply_to
 
-                        response = on_message(self.serializer.decode(message.body))
+                        response = on_message(
+                            self.serializer.decode(message.body))
                         await channel.default_exchange.publish(
                             Message(
                                 body=self.serializer.encode(response),

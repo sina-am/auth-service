@@ -25,7 +25,7 @@ class RabitMQSettings(BaseModel):
 class MongoDBSettings(BaseModel):
     uri: str
     database: str = 'users'
-    
+
 
 class RedisSettings(BaseModel):
     address: RedisDsn
@@ -44,10 +44,11 @@ class GlobalSettings(BaseSettings):
     access_token_expire_time: int = 30
     datetime_format = '%Y-%m-%d %H:%M:%S'
     user_max_failed_attempt: int = 5
-    
+
     class Config:
         env_nested_delimiter = '__'
         env_file = '.env'
         env_file_encoding = 'utf-8'
+
 
 settings = GlobalSettings()

@@ -2,8 +2,8 @@ from datetime import date
 import mimetypes
 from pydantic import EmailStr, Field, validator, HttpUrl
 from typing import List, Optional, Union
-from app.models.base import MongoModel, BaseModelIn, BaseModelOut 
-from app.types.fields import ObjectIdField, PhoneNumberField, PostCodeField 
+from app.models.base import MongoModel, BaseModelIn, BaseModelOut
+from app.types.fields import ObjectIdField, PhoneNumberField, PostCodeField
 from app.utils.translation import _
 
 
@@ -20,7 +20,7 @@ class SocialMedia(MongoModel):
 class ContactInformation(MongoModel):
     city_id: Optional[ObjectIdField]
     post_code: Optional[PostCodeField]
-    phone_number: Optional[PhoneNumberField] 
+    phone_number: Optional[PhoneNumberField]
     email: Optional[EmailStr]
     address: Optional[str]
     location: Optional[Location]
@@ -34,12 +34,12 @@ class ContactInformationOut(BaseModelOut):
     post_code: Optional[PostCodeField]
     address: Optional[str]
     location: Optional[Location]
-    phone_number: Optional[PhoneNumberField] 
+    phone_number: Optional[PhoneNumberField]
     email: Optional[EmailStr]
     video_call_link: Optional[str]
     social_media_links: Optional[List[SocialMedia]]
     fax: Optional[str]
-    
+
     @classmethod
     def from_db(cls, contact: ContactInformation):
         if not contact:
@@ -63,7 +63,7 @@ class ContactInformationIn(BaseModelIn):
     post_code: Optional[PostCodeField]
     address: Optional[str]
     location: Optional[Location]
-    phone_number: Optional[PhoneNumberField] 
+    phone_number: Optional[PhoneNumberField]
     email: Optional[EmailStr]
     video_call_link: Optional[str]
     social_media_links: Optional[List[SocialMedia]]
@@ -85,7 +85,8 @@ class ContactInformationIn(BaseModelIn):
 
 class PictureIn(BaseModelIn):
     content_type: str = Field(description='Standard mime type')
-    content_length: int = Field(description='File size in byte', gt=100, lt=52428800)
+    content_length: int = Field(
+        description='File size in byte', gt=100, lt=52428800)
 
     @validator('content_type')
     def image_media_type_validation(cls, v):
@@ -96,4 +97,4 @@ class PictureIn(BaseModelIn):
 
 
 class PictureOut(BaseModelOut):
-    url: str 
+    url: str

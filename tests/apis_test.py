@@ -3,12 +3,13 @@ from fastapi.testclient import TestClient
 from fastapi import status
 
 from app.services import init_srv
-from app.models.role import UserRole 
+from app.models.role import UserRole
 from app.main import app
 from app.apis.depends import get_current_admin_user
 from app.models.province import CityIn, City, Province, ProvinceIn
 from app.models.user import RealUser, LegalUser, RealUserCreationIn, LegalUserCreationIn, ProfileOut
 from app.models.response import StandardResponse
+from app.types.fields import NationalCodeField
 
 
 from tests.fake import fake_service, fake_admin
@@ -19,7 +20,7 @@ class TestHealthAPIs(TestCase):
         self.srv = fake_service()
         init_srv(self.srv)
 
-        app.dependency_overrides[get_current_admin_user] = lambda: fake_admin() 
+        app.dependency_overrides[get_current_admin_user] = lambda: fake_admin()
         self.client = TestClient(app)
 
     def test_check_database_connection(self):
@@ -40,7 +41,7 @@ class TestInformationAPIs(TestCase):
         self.srv = fake_service()
         init_srv(self.srv)
 
-        app.dependency_overrides[get_current_admin_user] = lambda: fake_admin() 
+        app.dependency_overrides[get_current_admin_user] = lambda: fake_admin()
         self.client = TestClient(app)
 
     def test_get_provinces(self):
@@ -48,9 +49,9 @@ class TestInformationAPIs(TestCase):
             # type: ignore
             name='test_province',
             cities=[
-                City(name='test_city_1'), # type: ignore
-                City(name='test_city_2'), # type: ignore
-                City(name='test_city_3'), # type: ignore
+                City(name='test_city_1'),  # type: ignore
+                City(name='test_city_2'),  # type: ignore
+                City(name='test_city_3'),  # type: ignore
             ]
         )
         p_db = self.srv.database.provinces.create(p)
@@ -72,7 +73,7 @@ class TestInformationAPIs(TestCase):
 
         res = self.client.post('api/v1/info/provinces/', json=p_in.dict())
         assert res.status_code == 200
-        assert Province(**res.json()).id != None 
+        assert Province(**res.json()).id is not None
         assert ProvinceIn(**res.json()) == p_in
 
 
@@ -81,82 +82,85 @@ class TestUserAPIs(TestCase):
         self.srv = fake_service()
         init_srv(self.srv)
 
-        app.dependency_overrides[get_current_admin_user] = lambda: fake_admin() 
+        app.dependency_overrides[get_current_admin_user] = lambda: fake_admin()
         self.client = TestClient(app)
 
     def test_create_user_valid(self):
         user_in = {
-           'first_name': 'test',
-           'last_name': 'test',
-           'national_code': '1111111111',
-           'phone_number': '1111111111',
-           'roles': [
+            'first_name': 'test',
+            'last_name': 'test',
+            'national_code': '1111111111',
+            'phone_number': '1111111111',
+            'roles': [
                 {
-                    'platform': 'test.com', 
+                    'platform': 'test.com',
                     'names': ['simple']
                 }
             ],
-           'password1': '1234',
-           'password2': '1234',
+            'password1': '1234',
+            'password2': '1234',
         }
         res = self.client.post('api/v1/users/', json=user_in)
         assert res.status_code == 200
         assert StandardResponse(**res.json()).message.en == 'user created'
 
-        assert self.srv.database.users.get_by_national_code('1111111111') != None
+        assert self.srv.database.users.get_by_national_code(
+            NationalCodeField('1111111111'))
 
     def test_create_user_invalid_national_code(self):
         user_in = {
-           'first_name': 'test',
-           'last_name': 'test',
-           'national_code': '1111',
-           'phone_number': '1111111111',
-           'roles': [
+            'first_name': 'test',
+            'last_name': 'test',
+            'national_code': '1111',
+            'phone_number': '1111111111',
+            'roles': [
                 {
-                    'platform': 'test.com', 
+                    'platform': 'test.com',
                     'names': ['simple']
                 }
             ],
-           'password1': '1234',
-           'password2': '1234',
+            'password1': '1234',
+            'password2': '1234',
         }
         res = self.client.post('api/v1/users/', json=user_in)
         assert res.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
-        assert 'national code' in StandardResponse(**res.json()).message.en.lower()
+        assert 'national code' in StandardResponse(
+            **res.json()).message.en.lower()
 
     def test_create_user_invalid_phone_number(self):
         user_in = {
-           'first_name': 'test',
-           'last_name': 'test',
-           'national_code': '1111111111',
-           'phone_number': '1111',
-           'roles': [
+            'first_name': 'test',
+            'last_name': 'test',
+            'national_code': '1111111111',
+            'phone_number': '1111',
+            'roles': [
                 {
-                    'platform': 'test.com', 
+                    'platform': 'test.com',
                     'names': ['simple']
                 }
             ],
-           'password1': '1234',
-           'password2': '1234',
+            'password1': '1234',
+            'password2': '1234',
         }
         res = self.client.post('api/v1/users/', json=user_in)
         assert res.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
-        assert 'phone number' in StandardResponse(**res.json()).message.en.lower()
+        assert 'phone number' in StandardResponse(
+            **res.json()).message.en.lower()
 
     def test_create_user_different_passwords(self):
         user_in = {
-           'first_name': 'test',
-           'last_name': 'test',
-           'national_code': '1111111111',
-           'phone_number': '1111111111',
-           'roles': [
+            'first_name': 'test',
+            'last_name': 'test',
+            'national_code': '1111111111',
+            'phone_number': '1111111111',
+            'roles': [
                 {
-                    'platform': 'test.com', 
+                    'platform': 'test.com',
                     'names': ['simple']
                 }
             ],
-           'password1': '1234',
-           'password2': '12345',
+            'password1': '1234',
+            'password2': '12345',
         }
         res = self.client.post('api/v1/users/', json=user_in)
         assert res.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
@@ -165,27 +169,27 @@ class TestUserAPIs(TestCase):
     def test_get_users(self):
         users = [
             RealUser.new_user(
-                '11111111111', 
-                '11111111111', 
-                'first_name', 
-                'last_name', 
-                'password', 
+                '11111111111',
+                '11111111111',
+                'first_name',
+                'last_name',
+                'password',
                 [
                     UserRole(
-                        platform='platform.com', 
+                        platform='platform.com',
                         names=['role_name']
                     )
                 ]
             ),
             LegalUser.new_user(
-                '11111111111', 
-                '11111111111', 
-                'company_name', 
-                'domain', 
-                'password', 
+                '11111111111',
+                '11111111111',
+                'company_name',
+                'domain',
+                'password',
                 [
                     UserRole(
-                        platform='platform.com', 
+                        platform='platform.com',
                         names=['role_name']
                     )
                 ]

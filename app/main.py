@@ -66,7 +66,7 @@ app.openapi = custom_openapi
 async def startup():
     service = authentication_factory(
         db=MongoDatabase(
-            settings.mongodb.uri, 
+            settings.mongodb.uri,
             settings.mongodb.database
         ),
         broker=RabbitMQ(
@@ -83,8 +83,8 @@ async def startup():
         ),
         notification=MelipayamakSMSNotification(
             phone=settings.melipayamak.phone,  # type: ignore
-            username=settings.melipayamak.username, # type: ignore
-            password=settings.melipayamak.password # type: ignore
+            username=settings.melipayamak.username,  # type: ignore
+            password=settings.melipayamak.password  # type: ignore
         )
     )
     init_srv(service)

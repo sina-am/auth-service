@@ -5,8 +5,8 @@ from app.models.province import Province, City
 from app.models.role import Role, UserRole
 from app.models.user import RealUser, LegalUser
 from app.models.profile import ContactInformation
-from bson import ObjectId 
-from app.types.fields import ObjectIdField, NationalCodeField
+from bson import ObjectId
+from app.types.fields import ObjectIdField, NationalCodeField, PhoneNumberField
 
 
 class TestMongoProvinceCollection(TestCase):
@@ -16,13 +16,12 @@ class TestMongoProvinceCollection(TestCase):
     def tearDown(self) -> None:
         self.database.drop()
 
-
     def test_create(self):
         province = Province(
             _id=ObjectIdField(ObjectId()),
-            name='p1', 
+            name='p1',
             cities=[
-                City(_id=ObjectIdField(ObjectId()), name='c11'), 
+                City(_id=ObjectIdField(ObjectId()), name='c11'),
                 City(_id=ObjectIdField(ObjectId()), name='c12')
             ]
         )
@@ -30,22 +29,21 @@ class TestMongoProvinceCollection(TestCase):
         self.database.provinces.create(province)
         assert province.id
 
-
-    def test_get_all(self): 
+    def test_get_all(self):
         provinces = [
             Province(
                 _id=ObjectIdField(ObjectId()),
-                name='p1', 
+                name='p1',
                 cities=[
-                    City(_id=ObjectIdField(ObjectId()), name='c11'), 
+                    City(_id=ObjectIdField(ObjectId()), name='c11'),
                     City(_id=ObjectIdField(ObjectId()), name='c12')
                 ]
             ),
             Province(
                 _id=ObjectIdField(ObjectId()),
-                name='p2', 
+                name='p2',
                 cities=[
-                    City(_id=ObjectIdField(ObjectId()), name='c21'), 
+                    City(_id=ObjectIdField(ObjectId()), name='c21'),
                     City(_id=ObjectIdField(ObjectId()), name='c22')
                 ]
             ),
@@ -61,9 +59,9 @@ class TestMongoProvinceCollection(TestCase):
 
         province = Province(
             _id=ObjectIdField(ObjectId()),
-            name='p1', 
+            name='p1',
             cities=[
-                City(_id=ObjectIdField(ObjectId()), name='c11'), 
+                City(_id=ObjectIdField(ObjectId()), name='c11'),
                 City(_id=ObjectIdField(ObjectId()), name='c12'),
                 city
             ]
@@ -124,7 +122,7 @@ class TestMongoRoleCollection(TestCase):
         self.database.roles.create(role)
 
         try:
-            self.database.roles.get_by_platform('test') 
+            self.database.roles.get_by_platform('test')
             assert False
         except Exception as exc:
             assert isinstance(exc, errors.RoleDoesNotExist)
@@ -157,17 +155,19 @@ class TestMongoRoleCollection(TestCase):
 class TestMongoUserCollection(TestCase):
     def setUp(self):
         self.database = MongoDatabase("mongodb://localhost", "test_database")
+        # Raise error if database connection failed
+        self.database.check_connection()
 
         self.province = Province(
             _id=ObjectIdField(ObjectId()),
-            name='p1', 
+            name='p1',
             cities=[
-                City(_id=ObjectIdField(ObjectId()), name='c11'), 
+                City(_id=ObjectIdField(ObjectId()), name='c11'),
                 City(_id=ObjectIdField(ObjectId()), name='c12')
             ]
         )
         self.database.provinces.create(self.province)
-    
+
         role = Role(
             _id=ObjectIdField(ObjectId()),
             platform="*",
@@ -180,10 +180,10 @@ class TestMongoUserCollection(TestCase):
 
     def test_create_user(self):
         user = RealUser.new_user(
-            national_code='11111111111',
+            national_code=NationalCodeField('1111111111'),
             first_name='first_name',
             last_name='last_name',
-            phone_number='1111111111',
+            phone_number=PhoneNumberField('1111111111'),
             plain_password='plain_password',
             roles=[
                 UserRole(platform='*', names=['admin'])
@@ -192,13 +192,13 @@ class TestMongoUserCollection(TestCase):
         db_user = self.database.users.create(user)
 
         assert db_user == user
-    
+
     def test_create_user_with_none_existent_platform(self):
         user = RealUser.new_user(
-            national_code='11111111111',
+            national_code=NationalCodeField('1111111111'),
             first_name='first_name',
             last_name='last_name',
-            phone_number='1111111111',
+            phone_number=PhoneNumberField('1111111111'),
             plain_password='plain_password',
             roles=[
                 UserRole(platform='invalid_platform', names=['admin'])
@@ -209,33 +209,33 @@ class TestMongoUserCollection(TestCase):
             assert False
         except Exception as exc:
             assert isinstance(exc, errors.RoleDoesNotExist)
-        
+
     def test_create_user_invalid_province(self):
         user = RealUser.new_user(
-            national_code='11111111111',
+            national_code=NationalCodeField('1111111111'),
             first_name='first_name',
             last_name='last_name',
-            phone_number='1111111111',
+            phone_number=PhoneNumberField('1111111111'),
             plain_password='plain_password',
             roles=[
                 UserRole(platform='*', names=['admin'])
             ],
         )
         user.contact_information = ContactInformation(
-            city_id=ObjectIdField(ObjectId())) # type: ignore
+            city_id=ObjectIdField(ObjectId()))  # type: ignore
 
         try:
             self.database.users.create(user)
             assert False
         except Exception as exc:
             assert isinstance(exc, errors.CityDoesNotExist)
-        
+
     def test_get_user_by_national_code(self):
         user = RealUser.new_user(
-            national_code='11111111111',
+            national_code=NationalCodeField('1111111111'),
             first_name='first_name',
             last_name='last_name',
-            phone_number='1111111111',
+            phone_number=PhoneNumberField('1111111111'),
             plain_password='plain_password',
             roles=[
                 UserRole(platform='*', names=['admin'])
@@ -243,16 +243,17 @@ class TestMongoUserCollection(TestCase):
         )
         self.database.users.create(user)
 
-        db_user = self.database.users.get_by_national_code(NationalCodeField(user.national_code))
+        db_user = self.database.users.get_by_national_code(
+            NationalCodeField(user.national_code))
 
         assert db_user == user
-    
+
     def test_get_none_existent_user(self):
         user = RealUser.new_user(
-            national_code='11111111111',
+            national_code=NationalCodeField('1111111111'),
             first_name='first_name',
             last_name='last_name',
-            phone_number='1111111111',
+            phone_number=PhoneNumberField('1111111111'),
             plain_password='plain_password',
             roles=[
                 UserRole(platform='*', names=['admin'])
@@ -261,7 +262,8 @@ class TestMongoUserCollection(TestCase):
         self.database.users.create(user)
 
         try:
-            self.database.users.get_by_national_code(NationalCodeField('22222222222'))
+            self.database.users.get_by_national_code(
+                NationalCodeField('22222222222'))
             assert False
         except Exception as exc:
             assert isinstance(exc, errors.UserDoesNotExist)

@@ -5,7 +5,6 @@ from datetime import datetime
 from bson import ObjectId
 
 
-
 class MongoModel(BaseModel):
     """
     Base model for mapping pydantic objects to mongo compatible dictionary.
@@ -35,8 +34,9 @@ class BaseModelIn(MongoModel):
 
 
 class PlatformSpecificationOut(BaseModel):
-    platform: str 
-    role: str 
+    platform: str
+    role: str
 
 
-class PlatformSpecificationIn(PlatformSpecificationOut): ...
+class PlatformSpecificationIn(PlatformSpecificationOut):
+    ...

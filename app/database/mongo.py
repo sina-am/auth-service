@@ -17,7 +17,7 @@ class MongoRoleCollection(RoleCollection):
     def __init__(self, db: database.Database):
         self.db = db
         self.collection = self.db.roles
-    
+
     def create(self, role: Role) -> Role:
         if self.__check_if_exists(role.platform):
             raise errors.RoleAlreadyExist("role already exist.")
@@ -25,15 +25,16 @@ class MongoRoleCollection(RoleCollection):
         result = self.collection.insert_one(role.dict())
         role.id = result.inserted_id
         return role
-        
+
     def get_all(self) -> List[Role]:
-        return list(map(lambda d: Role(**d), self.collection.find())) 
+        return list(map(lambda d: Role(**d), self.collection.find()))
 
     def get_by_platform(self, platform: str) -> Role:
         result = self.collection.find_one({"platform": platform})
         if result:
             return Role(**result)
-        raise errors.RoleDoesNotExist(f"role with platform {platform} don't exist.")
+        raise errors.RoleDoesNotExist(
+            f"role with platform {platform} don't exist.")
 
     def __check_if_exists(self, platform: str) -> bool:
         result = self.collection.find_one({"platform": platform})
@@ -53,11 +54,11 @@ class MongoUserCollection(UserCollection):
         self.db = db
         self.collection = self.db.users
         self.required_fields = {
-            '_id': 1, 
-            'password': 1, 
-            'roles': 1, 
-            'type': 1, 
-            'national_code': 1, 
+            '_id': 1,
+            'password': 1,
+            'roles': 1,
+            'type': 1,
+            'national_code': 1,
             'company_code': 1,
             'phone_number': 1,
             'last_login': 1,
@@ -74,8 +75,8 @@ class MongoUserCollection(UserCollection):
             'company_name': 1,
             'domain': 1,
             'title': 1
-        } 
-    
+        }
+
     def __find_one(self, filters):
         """ Only fetchs required fields. """
         return self.collection.find_one(filters, self.required_fields)
@@ -96,7 +97,8 @@ class MongoUserCollection(UserCollection):
         for user_role in roles:
             role = self.db.roles.find_one({"platform": user_role.platform})
             if not role:
-                raise errors.RoleDoesNotExist(f"platform {user_role.platform} does not exists")
+                raise errors.RoleDoesNotExist(
+                    f"platform {user_role.platform} does not exists")
 
             for name in user_role.names:
                 if name not in role["names"]:
@@ -109,7 +111,8 @@ class MongoUserCollection(UserCollection):
             {'name': 1, 'cities.$': 1}
         )
         if not query:
-            raise errors.CityDoesNotExist(f"city with id {city_id} don't exist")
+            raise errors.CityDoesNotExist(
+                f"city with id {city_id} don't exist")
 
     def create(self, user: Union[RealUser, LegalUser]) -> Union[RealUser, LegalUser]:
         self.__error_on_invalid_roles(user.roles)
@@ -118,7 +121,7 @@ class MongoUserCollection(UserCollection):
             self.__error_on_invalid_city(user.contact_information.city_id)
 
         document = user.dict(exclude_none=True)
-        result = self.collection.insert_one(document) 
+        result = self.collection.insert_one(document)
         user.id = result.inserted_id
         return user
 
@@ -133,10 +136,11 @@ class MongoUserCollection(UserCollection):
             return RealUser(**document)
         elif document.get("type") == UserType.LEGAL:
             return LegalUser(**document)
-        raise errors.InvalidDatabaseSchema(f"user {document['_id']} doesn't have a type field")
+        raise errors.InvalidDatabaseSchema(
+            f"user {document['_id']} doesn't have a type field")
 
     def get_all(self) -> List[Union[RealUser, LegalUser]]:
-        return list(map(lambda d: self.map_to_model(d), self.__find({}))) 
+        return list(map(lambda d: self.map_to_model(d), self.__find({})))
 
     def get_by_national_code(self, national_code: NationalCodeField) -> RealUser:
         document = self.__find_one({"national_code": national_code})
@@ -174,13 +178,13 @@ class MongoUserCollection(UserCollection):
         document = self.__find_one({"_id": ObjectId(user_id)})
         if not document:
             raise errors.UserAlreadyExist("user does not exist")
-        return self.map_to_model(document) 
+        return self.map_to_model(document)
 
     def update(self, user: Union[RealUser, LegalUser]):
         # TODO: Only update fields that are changed
         if user.contact_information:
             self.__error_on_invalid_city(
-                user.contact_information.city_id) 
+                user.contact_information.city_id)
 
         query = user.dict(exclude_none=True)
         query.pop('id')
@@ -207,26 +211,27 @@ class MongoProvinceCollection(ProvinceDatabase):
         for i in range(len(document['cities'])):
             document['cities'][i] = {
                 "_id": document['cities'][i]["id"],
-                "name": document['cities'][i]["name"] 
+                "name": document['cities'][i]["name"]
             }
 
         result = self.collection.insert_one(document)
         province.id = result.inserted_id
-        return province 
+        return province
 
-    def get_all(self) -> List[Province]: 
-        return list(map(lambda d: Province(**d), self.collection.find())) 
+    def get_all(self) -> List[Province]:
+        return list(map(lambda d: Province(**d), self.collection.find()))
 
     def get_by_city_id(self, city_id: str) -> Province:
         """ only return one city with it's province """
-        
+
         query = self.collection.find_one(
             {'cities._id': ObjectId(city_id)},
             {'name': 1, 'cities.$': 1}
         )
         if not query:
-            raise errors.CityDoesNotExist(f"city with id {city_id} don't exist")
-        return Province(**query) 
+            raise errors.CityDoesNotExist(
+                f"city with id {city_id} don't exist")
+        return Province(**query)
 
 
 class MongoDatabase(Database):
@@ -240,7 +245,6 @@ class MongoDatabase(Database):
 
     def check_connection(self):
         return self.db.command('ping')
-    
+
     def drop(self):
         self.client.drop_database(self.database_name)
-    

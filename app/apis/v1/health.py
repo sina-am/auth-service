@@ -14,8 +14,8 @@ router = APIRouter(prefix="/health", tags=['Health Checks'])
 @router.get("/mongodb/", response_model=StandardResponse)
 def check_mongodb_connection(
     admin: Union[RealUser, LegalUser] = Depends(get_current_admin_user),
-    srv: AuthService = Depends(get_srv) 
-    ):   
+    srv: AuthService = Depends(get_srv)
+):
     """ Checkes MongoDB connection using ping command. """
     try:
         srv.database.check_connection()
@@ -27,8 +27,8 @@ def check_mongodb_connection(
 @router.get('/redis/', response_model=StandardResponse)
 def check_redis_connection(
     admin: Union[RealUser, LegalUser] = Depends(get_current_admin_user),
-    srv: AuthService = Depends(get_srv) 
-    ):
+    srv: AuthService = Depends(get_srv)
+):
     """ Checks redis connection. """
     if srv.cache.ping():
         return standard_response('ok')
@@ -40,9 +40,9 @@ def check_redis_connection(
 #     # admin: Union[RealUser, LegalUser] = Depends(get_current_admin_user),
 #     db: Database = Depends(get_db)
 #     ):
-#     """ 
+#     """
 #     Check rabbitMQ connection
-#     """ 
+#     """
 
 #     try:
 #         return standard_response(response)

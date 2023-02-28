@@ -1,6 +1,6 @@
 from fastapi import APIRouter
 from app.apis.v1.login import router as login_router
-from app.apis.v1.user import router as user_router 
+from app.apis.v1.user import router as user_router
 from app.apis.v1.register import router as register_router
 from app.apis.v1.verification import router as verification_router
 from app.apis.v1.health import router as health_router

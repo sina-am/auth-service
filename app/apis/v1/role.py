@@ -14,14 +14,15 @@ from app.utils.translation import _
 from app.services import AuthService, get_srv
 
 
-router = APIRouter(prefix="/roles", tags=['Roles']) 
+router = APIRouter(prefix="/roles", tags=['Roles'])
+
 
 @router.post("/", response_model=Role)
 async def create_role(
     role: RoleCreationIn,
     admin: Union[RealUser, LegalUser] = Depends(get_current_admin_user),
     srv: AuthService = Depends(get_srv)
-    ):
+):
     """ Create a new role or update one """
 
     return srv.database.roles.create(role.to_model())
@@ -31,7 +32,7 @@ async def create_role(
 async def get_roles(
     admin: Union[RealUser, LegalUser] = Depends(get_current_admin_user),
     srv: AuthService = Depends(get_srv)
-    ):
+):
     """ Get all roles """
 
     return srv.database.roles.get_all()
@@ -42,7 +43,7 @@ async def delete_role(
     role_id: ObjectIdField,
     admin: Union[RealUser, LegalUser] = Depends(get_current_admin_user),
     srv: AuthService = Depends(get_srv)
-    ):
+):
     """ Delete role. """
 
     try:
@@ -50,4 +51,3 @@ async def delete_role(
     except RoleDoesNotExist as e:
         raise HTTPNotFoundError(e)
     return standard_response(_("role deleted"))
- 

@@ -36,7 +36,7 @@ class Rest:
             'bodyId': bodyId
         }
         return self.post(url, {**data, **self.get_data()})
-    
+
     def is_delivered(self, recId):
         url = self.PATH % ('GetDeliveries2')
         data = {

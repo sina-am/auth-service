@@ -12,7 +12,7 @@ class MemoryRoleDatabase(RoleCollection):
     def __init__(self, db):
         self.db = db
 
-    def create(self, role: Role) -> Role: 
+    def create(self, role: Role) -> Role:
         role.id = ObjectId()  # type: ignore
         self.db["roles"].append(role)
         return role
@@ -24,24 +24,25 @@ class MemoryRoleDatabase(RoleCollection):
         for role in self.db["roles"]:
             if role.platform == platform:
                 return role
-        raise errors.RoleDoesNotExist(f"role with platform {platform} doesn't exist")
+        raise errors.RoleDoesNotExist(
+            f"role with platform {platform} doesn't exist")
 
-    def delete_by_id(self, role_id: str): 
+    def delete_by_id(self, role_id: str):
         for i in range(len(self.db["roles"])):
             if self.db["roles"][i].id == role_id:
-                del self.db["roles"][i] 
+                del self.db["roles"][i]
 
 
 class MemoryUserDatabase(UserCollection):
-    def __init__(self, db): 
+    def __init__(self, db):
         self.db = db
 
     def create(self, user: Union[RealUser, LegalUser]) -> Union[RealUser, LegalUser]:
-        user.id = ObjectId() # type: ignore
+        user.id = ObjectId()  # type: ignore
         self.db["users"].append(user)
         return user
 
-    def update_last_login(self, user: Union[RealUser, LegalUser]): 
+    def update_last_login(self, user: Union[RealUser, LegalUser]):
         return
 
     def get_all(self) -> Union[RealUser, LegalUser]:
@@ -53,26 +54,25 @@ class MemoryUserDatabase(UserCollection):
                 return user
         raise errors.UserDoesNotExist()
 
-    def get_by_company_code(self, company_code: CompanyCodeField) -> LegalUser: 
+    def get_by_company_code(self, company_code: CompanyCodeField) -> LegalUser:
         for user in self.db["users"]:
             if isinstance(user, LegalUser) and user.company_code == company_code:
                 return user
         raise errors.UserDoesNotExist()
 
-
     def get_first(self) -> Union[RealUser, LegalUser]:
-        if len(self.db["users"]) == 0 :
+        if len(self.db["users"]) == 0:
             raise errors.UserDoesNotExist()
         return self.db["users"][0]
 
-    def check_by_national_code(self, national_code: NationalCodeField) -> bool: 
+    def check_by_national_code(self, national_code: NationalCodeField) -> bool:
         try:
             self.get_by_national_code(national_code)
             return True
         except errors.UserDoesNotExist:
             return False
 
-    def check_by_company_code(self, company_code: CompanyCodeField) -> bool: 
+    def check_by_company_code(self, company_code: CompanyCodeField) -> bool:
         try:
             self.get_by_company_code(company_code)
             return True
@@ -84,21 +84,22 @@ class MemoryUserDatabase(UserCollection):
             if user.id == user_id:
                 return user
         raise errors.UserDoesNotExist()
-       
-    def update(self, user: Union[RealUser, LegalUser]): 
-        ... 
+
+    def update(self, user: Union[RealUser, LegalUser]):
+        ...
+
 
 class MemoryProvinceDatabase(ProvinceDatabase):
     def __init__(self, db: Dict[str, List[Any]]):
         self.db = db
         self.provinces: List[Province] = db["provinces"]
 
-    def create(self, province: Province) -> Province: 
-        province.id = ObjectId() # type: ignore
+    def create(self, province: Province) -> Province:
+        province.id = ObjectId()  # type: ignore
         self.provinces.append(province)
-        return province 
+        return province
 
-    def get_all(self) -> List[Province]: 
+    def get_all(self) -> List[Province]:
         return self.provinces
 
     def get_by_city_id(self, city_id: str) -> Province:
@@ -111,6 +112,7 @@ class MemoryProvinceDatabase(ProvinceDatabase):
 
 class MemoryDatabase(Database):
     """ Base Database Interface. """
+
     def __init__(self) -> None:
         db: Dict[str, List[Any]] = {
             "provinces": [],

@@ -20,7 +20,7 @@ class BaseField(str):
         yield cls.validate
 
     def __repr__(self):
-        return f'{self.__class__.__name__}({super().__repr__()})' 
+        return f'{self.__class__.__name__}({super().__repr__()})'
 
 
 class ObjectIdField(str):
@@ -32,8 +32,9 @@ class ObjectIdField(str):
     def validate(cls, v):
         try:
             return ObjectId(str(v))
-        except:
+        except Exception:
             raise ValueError("not a valid ObjectId")
+
 
 class CompanyCodeField(BaseField):
     """
@@ -111,7 +112,7 @@ class VerificationCodeField(BaseField):
     @staticmethod
     def generate_new():
         return VerificationCodeField(randint(10000, 99999))
-        
+
     @classmethod
     def validate(cls, v):
         if isinstance(v, VerificationCodeField):

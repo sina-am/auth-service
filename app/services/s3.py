@@ -8,10 +8,10 @@ from app.models.profile import PictureIn
 
 
 class S3Service():
-    def __init__(self, base_directory: str) -> None:  
+    def __init__(self, base_directory: str) -> None:
         try:
             self.s3 = boto3.client(
-                's3', 
+                's3',
                 endpoint_url=settings.s3.endpoint_url,
                 aws_access_key_id=settings.s3.aws_access_key_id,
                 aws_secret_access_key=settings.s3.aws_secret_access_key
@@ -30,16 +30,16 @@ class S3Service():
 
     def create_object(self, key: str, content_type: str):
         return self.s3.put_object(
-            ACL='public-read', 
-            Bucket=self.bucket_name, 
+            ACL='public-read',
+            Bucket=self.bucket_name,
             Key=key,
             ContentType=content_type
         )
 
     def generate_presigned_url(
-        self, name: str, content_type: str, 
+        self, name: str, content_type: str,
         content_length: int, expired: int = 3600
-        ) -> str:
+    ) -> str:
 
         key = self.get_filename(name, content_type)
         try:
@@ -50,7 +50,7 @@ class S3Service():
                     'Key': key,
                     'Bucket': self.bucket_name,
                     'ContentType': content_type
-                }, 
+                },
                 expired
             )
         except Exception as exc:
@@ -63,7 +63,7 @@ def create_profile_picture_url(info: PictureIn, user_id: str) -> str:
     """ Create a object for profile picture and return the presigned url. """
     service = S3Service('images/profile')
     return service.generate_presigned_url(
-        user_id, 
-        info.content_type, 
+        user_id,
+        info.content_type,
         info.content_length
     )

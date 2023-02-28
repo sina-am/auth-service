@@ -3,6 +3,7 @@ from app.services.authentication import AuthService
 
 __srv: AuthService
 
+
 def init_srv(srv: AuthService):
     global __srv
     __srv = srv
