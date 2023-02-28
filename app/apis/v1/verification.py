@@ -9,15 +9,15 @@ from app.models.verification import (
     LegalUserSendSMSCodeIn, RealUserSendSMSCodeIn,
 )
 from app.services import AuthService, get_srv
+from app.services.verification import VerificationCodeAlreadySendError
 
 
 router = APIRouter(prefix='/verification', tags=['Verification'])
 
 
 @router.post('/sms/send/', response_model=StandardResponse, summary="Send SMS Verification")
-def send_sms_code(
+await def send_sms_code(
     v: Union[RealUserSendSMSCodeIn, LegalUserSendSMSCodeIn],
-    background_tasks: BackgroundTasks,
     service: AuthService = Depends(get_srv)
 ):
     """
@@ -32,9 +32,11 @@ def send_sms_code(
 
     NOTE: Default value for **verify_as** is **NEW_USER**.
     """
-    if service.verification.check_already_exist(v):
-        return standard_response(_('already sent'))
-
+    try:
+        await service.verification.send(v)
+    except VerificationCodeAlreadySendError:
+        return standard_response(_('already send'))
+        
     background_tasks.add_task(service.verification.send, v)
     return standard_response(_('sent'))
 
