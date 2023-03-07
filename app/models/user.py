@@ -1,10 +1,9 @@
 from datetime import datetime, date
 from typing import List, Optional, Union
 from app.models.base import MongoModel, BaseModelOut
-from app.models.role import UserRole
-from app.types.enums import UserType
+from app.models.role import UserRole, Role
 from app.types.fields import ObjectIdField, CompanyCodeField, CompanyDomainField, GenderField,\
-    NationalCodeField, PhoneNumberField, UserTypeField
+    NationalCodeField, PhoneNumberField, UserTypeField, UserType
 
 from app.core.security import get_password_hash
 from pydantic import BaseModel, Field, validator, HttpUrl
@@ -63,8 +62,8 @@ class RealUser(User):
 
     @staticmethod
     def new_user(
-        national_code: str,
-        phone_number: str,
+        national_code: NationalCodeField,
+        phone_number: PhoneNumberField,
         first_name: str,
         last_name: str,
         plain_password: str,

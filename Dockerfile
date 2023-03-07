@@ -14,4 +14,4 @@ COPY ./ .
 # Generate .mo files
 RUN ./scripts/generate_locales.sh
 
-CMD ["uvicorn", "--port", "80", "--host", "0.0.0.0", "app.main:app"]
+CMD ["python", "auth.py", "run", "--port", "80", "--host", "0.0.0.0"]

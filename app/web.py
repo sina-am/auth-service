@@ -5,21 +5,12 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.exceptions import RequestValidationError
 from fastapi.openapi.utils import get_openapi
 
+from app.services import get_srv
 from app.models.response import Message, StandardResponse
 from app.apis.router import router
-from app.services import (
-    RabbitMQ, authentication_factory,
-    init_srv, AuthService, MelipayamakSMSNotification)
 from app.services.rpc import call_service
-from app.database import MongoDatabase
-from app.cache import RedisCache
-from app.core.config import settings
+
 from app.core import errors
-
-
-"""
-Main asgi application for running with uvicorn
-"""
 
 
 app = FastAPI(prefix="/api/v1")
@@ -62,33 +53,9 @@ def custom_openapi():
 app.openapi = custom_openapi
 
 
-@app.on_event('startup')
-async def startup():
-    service = authentication_factory(
-        db=MongoDatabase(
-            settings.mongodb.uri,
-            settings.mongodb.database
-        ),
-        broker=RabbitMQ(
-            settings.rabbitmq.address,
-            settings.rabbitmq.port,
-            settings.rabbitmq.username,
-            settings.rabbitmq.password
-        ),
-        cache=RedisCache(
-            settings.redis.address.host,  # type: ignore
-            settings.redis.address.port,  # type: ignore
-            db=0,
-            password=settings.redis.password  # type: ignore
-        ),
-        notification=MelipayamakSMSNotification(
-            phone=settings.melipayamak.phone,  # type: ignore
-            username=settings.melipayamak.username,  # type: ignore
-            password=settings.melipayamak.password  # type: ignore
-        )
-    )
-    init_srv(service)
-
+@app.on_event("startup")
+def startup():
+    service = get_srv()
     loop = asyncio.get_event_loop()
     asyncio.ensure_future(service.broker.consume(
         loop, 'auth_srv', call_service))

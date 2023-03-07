@@ -4,7 +4,7 @@ from fastapi import status
 
 from app.services import init_srv
 from app.models.role import UserRole
-from app.main import app
+from app.web import app
 from app.apis.depends import get_current_admin_user
 from app.models.province import CityIn, City, Province, ProvinceIn
 from app.models.user import RealUser, LegalUser, RealUserCreationIn, LegalUserCreationIn, ProfileOut
