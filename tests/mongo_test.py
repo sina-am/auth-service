@@ -1,15 +1,14 @@
 from unittest import TestCase
-from app.database import MongoDatabase
-from app.database import errors
+from app.database import MongoDatabase, MemoryDatabase, errors
 from app.models.province import Province, City
 from app.models.role import Role, UserRole
 from app.models.user import RealUser, LegalUser
 from app.models.profile import ContactInformation
 from bson import ObjectId
-from app.types.fields import ObjectIdField, NationalCodeField, PhoneNumberField
+from app.types.fields import ObjectIdField, NationalCodeField, PhoneNumberField, CompanyCodeField
 
 
-class TestMongoProvinceCollection(TestCase):
+class TestDatabaseProvinceCollection(TestCase):
     def setUp(self):
         self.database = MongoDatabase("mongodb://localhost", "test_database")
 
@@ -72,7 +71,7 @@ class TestMongoProvinceCollection(TestCase):
         assert city == db_province.cities[0]
 
 
-class TestMongoRoleCollection(TestCase):
+class TestDatabaseRoleCollection(TestCase):
     def setUp(self):
         self.database = MongoDatabase("mongodb://localhost", "test_database")
 
@@ -127,6 +126,11 @@ class TestMongoRoleCollection(TestCase):
         except Exception as exc:
             assert isinstance(exc, errors.RoleDoesNotExist)
 
+    def test_get_all_on_none_list(self):
+        db_roles = self.database.roles.get_all()
+        assert db_roles == []
+        assert db_roles is not None
+
     def test_get_all(self):
         roles = [
             Role(
@@ -152,7 +156,7 @@ class TestMongoRoleCollection(TestCase):
         assert roles == db_roles
 
 
-class TestMongoUserCollection(TestCase):
+class TestDatabaseUserCollection(TestCase):
     def setUp(self):
         self.database = MongoDatabase("mongodb://localhost", "test_database")
         # Raise error if database connection failed
@@ -178,12 +182,12 @@ class TestMongoUserCollection(TestCase):
     def tearDown(self) -> None:
         self.database.drop()
 
-    def test_create_user(self):
+    def test_create_real_user(self):
         user = RealUser.new_user(
-            national_code=NationalCodeField('1111111111'),
+            national_code=NationalCodeField('1'*10),
             first_name='first_name',
             last_name='last_name',
-            phone_number=PhoneNumberField('1111111111'),
+            phone_number=PhoneNumberField('1'*10),
             plain_password='plain_password',
             roles=[
                 UserRole(platform='*', names=['admin'])
@@ -193,12 +197,12 @@ class TestMongoUserCollection(TestCase):
 
         assert db_user == user
 
-    def test_create_user_with_none_existent_platform(self):
+    def test_create_real_user_with_none_existent_platform(self):
         user = RealUser.new_user(
-            national_code=NationalCodeField('1111111111'),
+            national_code=NationalCodeField('1'*10),
             first_name='first_name',
             last_name='last_name',
-            phone_number=PhoneNumberField('1111111111'),
+            phone_number=PhoneNumberField('1'*10),
             plain_password='plain_password',
             roles=[
                 UserRole(platform='invalid_platform', names=['admin'])
@@ -210,12 +214,12 @@ class TestMongoUserCollection(TestCase):
         except Exception as exc:
             assert isinstance(exc, errors.RoleDoesNotExist)
 
-    def test_create_user_invalid_province(self):
+    def test_create_real_user_with_invalid_province(self):
         user = RealUser.new_user(
-            national_code=NationalCodeField('1111111111'),
+            national_code=NationalCodeField('1'*10),
             first_name='first_name',
             last_name='last_name',
-            phone_number=PhoneNumberField('1111111111'),
+            phone_number=PhoneNumberField('1'*10),
             plain_password='plain_password',
             roles=[
                 UserRole(platform='*', names=['admin'])
@@ -230,12 +234,28 @@ class TestMongoUserCollection(TestCase):
         except Exception as exc:
             assert isinstance(exc, errors.CityDoesNotExist)
 
-    def test_get_user_by_national_code(self):
+    def test_create_already_exist_real_user(self):
         user = RealUser.new_user(
-            national_code=NationalCodeField('1111111111'),
+            national_code=NationalCodeField('1'*10),
             first_name='first_name',
             last_name='last_name',
-            phone_number=PhoneNumberField('1111111111'),
+            phone_number=PhoneNumberField('1'*10),
+            plain_password='plain_password',
+            roles=[
+                UserRole(platform='*', names=['admin'])
+            ],
+        )
+        db_user = self.database.users.create(user)
+
+        with self.assertRaises(errors.UserAlreadyExist):
+            self.database.users.create(user)
+
+    def test_get_real_user_by_national_code(self):
+        user = RealUser.new_user(
+            national_code=NationalCodeField('1'*10),
+            first_name='first_name',
+            last_name='last_name',
+            phone_number=PhoneNumberField('1'*10),
             plain_password='plain_password',
             roles=[
                 UserRole(platform='*', names=['admin'])
@@ -248,12 +268,12 @@ class TestMongoUserCollection(TestCase):
 
         assert db_user == user
 
-    def test_get_none_existent_user(self):
+    def test_get_none_existent_real_user(self):
         user = RealUser.new_user(
-            national_code=NationalCodeField('1111111111'),
+            national_code=NationalCodeField('1'*10),
             first_name='first_name',
             last_name='last_name',
-            phone_number=PhoneNumberField('1111111111'),
+            phone_number=PhoneNumberField('1'*10),
             plain_password='plain_password',
             roles=[
                 UserRole(platform='*', names=['admin'])
@@ -263,7 +283,130 @@ class TestMongoUserCollection(TestCase):
 
         try:
             self.database.users.get_by_national_code(
-                NationalCodeField('22222222222'))
+                NationalCodeField('2'*10))
             assert False
         except Exception as exc:
             assert isinstance(exc, errors.UserDoesNotExist)
+
+    def test_create_legal_user(self):
+        user = LegalUser.new_user(
+            company_code=CompanyCodeField('1'*11),
+            phone_number=PhoneNumberField('1'*10),
+            company_name='test',
+            domain='test',
+            plain_password='plain_password',
+            roles=[
+                UserRole(platform='*', names=['admin'])
+            ],
+        )
+        db_user = self.database.users.create(user)
+
+        assert db_user == user
+
+    def test_create_already_exist_legal_user(self):
+        user = LegalUser.new_user(
+            company_code=CompanyCodeField('1'*11),
+            phone_number=PhoneNumberField('1'*10),
+            company_name='test',
+            domain='test',
+            plain_password='plain_password',
+            roles=[
+                UserRole(platform='*', names=['admin'])
+            ],
+        )
+        db_user = self.database.users.create(user)
+
+        with self.assertRaises(errors.UserAlreadyExist):
+            self.database.users.create(user)
+
+    def test_create_legal_user_with_none_existent_platform(self):
+        user = LegalUser.new_user(
+            company_code=CompanyCodeField('1'*11),
+            phone_number=PhoneNumberField('1'*10),
+            company_name='test',
+            domain='test',
+            plain_password='plain_password',
+            roles=[
+                UserRole(platform='invalid', names=['admin'])
+            ],
+        )
+
+        try:
+            self.database.users.create(user)
+            assert False
+        except Exception as exc:
+            assert isinstance(exc, errors.RoleDoesNotExist)
+
+    def test_create_legal_user_with_invalid_province(self):
+        user = LegalUser.new_user(
+            company_code=CompanyCodeField('1'*11),
+            phone_number=PhoneNumberField('1'*10),
+            company_name='test',
+            domain='test',
+            plain_password='plain_password',
+            roles=[
+                UserRole(platform='*', names=['admin'])
+            ],
+        )
+        user.contact_information = ContactInformation(
+            city_id=ObjectIdField(ObjectId()))  # type: ignore
+
+        try:
+            self.database.users.create(user)
+            assert False
+        except Exception as exc:
+            assert isinstance(exc, errors.CityDoesNotExist)
+
+    def test_get_legal_user_by_company_code(self):
+        user = LegalUser.new_user(
+            company_code=CompanyCodeField('1'*11),
+            phone_number=PhoneNumberField('1'*10),
+            company_name='test',
+            domain='test',
+            plain_password='plain_password',
+            roles=[
+                UserRole(platform='*', names=['admin'])
+            ],
+        )
+        self.database.users.create(user)
+
+        db_user = self.database.users.get_by_company_code(
+            CompanyCodeField(user.company_code))
+
+        self.assertEqual(db_user, user)
+
+    def test_get_none_existent_user(self):
+        user = LegalUser.new_user(
+            company_code=CompanyCodeField('1'*11),
+            phone_number=PhoneNumberField('1'*10),
+            company_name='test',
+            domain='test',
+            plain_password='plain_password',
+            roles=[
+                UserRole(platform='*', names=['admin'])
+            ],
+        )
+        self.database.users.create(user)
+
+        try:
+            self.database.users.get_by_company_code(
+                CompanyCodeField('2'*11))
+            assert False
+        except Exception as exc:
+            assert isinstance(exc, errors.UserDoesNotExist)
+
+    def test_update_last_login(self):
+        user = LegalUser.new_user(
+            company_code=CompanyCodeField('1'*11),
+            phone_number=PhoneNumberField('1'*10),
+            company_name='test',
+            domain='test',
+            plain_password='plain_password',
+            roles=[
+                UserRole(platform='*', names=['admin'])
+            ],
+        )
+        self.database.users.create(user)
+        self.database.users.update_last_login(user)
+        db_user = self.database.users.get_by_id(str(user.id))
+        assert db_user.last_login > user.last_login
