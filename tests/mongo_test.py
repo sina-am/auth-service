@@ -184,10 +184,10 @@ class TestDatabaseUserCollection(TestCase):
 
     def test_create_real_user(self):
         user = RealUser.new_user(
-            national_code=NationalCodeField('1'*10),
+            national_code=NationalCodeField('1' * 10),
             first_name='first_name',
             last_name='last_name',
-            phone_number=PhoneNumberField('1'*10),
+            phone_number=PhoneNumberField('1' * 10),
             plain_password='plain_password',
             roles=[
                 UserRole(platform='*', names=['admin'])
@@ -199,10 +199,10 @@ class TestDatabaseUserCollection(TestCase):
 
     def test_create_real_user_with_none_existent_platform(self):
         user = RealUser.new_user(
-            national_code=NationalCodeField('1'*10),
+            national_code=NationalCodeField('1' * 10),
             first_name='first_name',
             last_name='last_name',
-            phone_number=PhoneNumberField('1'*10),
+            phone_number=PhoneNumberField('1' * 10),
             plain_password='plain_password',
             roles=[
                 UserRole(platform='invalid_platform', names=['admin'])
@@ -216,10 +216,10 @@ class TestDatabaseUserCollection(TestCase):
 
     def test_create_real_user_with_invalid_province(self):
         user = RealUser.new_user(
-            national_code=NationalCodeField('1'*10),
+            national_code=NationalCodeField('1' * 10),
             first_name='first_name',
             last_name='last_name',
-            phone_number=PhoneNumberField('1'*10),
+            phone_number=PhoneNumberField('1' * 10),
             plain_password='plain_password',
             roles=[
                 UserRole(platform='*', names=['admin'])
@@ -236,10 +236,10 @@ class TestDatabaseUserCollection(TestCase):
 
     def test_create_already_exist_real_user(self):
         user = RealUser.new_user(
-            national_code=NationalCodeField('1'*10),
+            national_code=NationalCodeField('1' * 10),
             first_name='first_name',
             last_name='last_name',
-            phone_number=PhoneNumberField('1'*10),
+            phone_number=PhoneNumberField('1' * 10),
             plain_password='plain_password',
             roles=[
                 UserRole(platform='*', names=['admin'])
@@ -252,10 +252,10 @@ class TestDatabaseUserCollection(TestCase):
 
     def test_get_real_user_by_national_code(self):
         user = RealUser.new_user(
-            national_code=NationalCodeField('1'*10),
+            national_code=NationalCodeField('1' * 10),
             first_name='first_name',
             last_name='last_name',
-            phone_number=PhoneNumberField('1'*10),
+            phone_number=PhoneNumberField('1' * 10),
             plain_password='plain_password',
             roles=[
                 UserRole(platform='*', names=['admin'])
@@ -270,10 +270,10 @@ class TestDatabaseUserCollection(TestCase):
 
     def test_get_none_existent_real_user(self):
         user = RealUser.new_user(
-            national_code=NationalCodeField('1'*10),
+            national_code=NationalCodeField('1' * 10),
             first_name='first_name',
             last_name='last_name',
-            phone_number=PhoneNumberField('1'*10),
+            phone_number=PhoneNumberField('1' * 10),
             plain_password='plain_password',
             roles=[
                 UserRole(platform='*', names=['admin'])
@@ -283,15 +283,15 @@ class TestDatabaseUserCollection(TestCase):
 
         try:
             self.database.users.get_by_national_code(
-                NationalCodeField('2'*10))
+                NationalCodeField('2' * 10))
             assert False
         except Exception as exc:
             assert isinstance(exc, errors.UserDoesNotExist)
 
     def test_create_legal_user(self):
         user = LegalUser.new_user(
-            company_code=CompanyCodeField('1'*11),
-            phone_number=PhoneNumberField('1'*10),
+            company_code=CompanyCodeField('1' * 11),
+            phone_number=PhoneNumberField('1' * 10),
             company_name='test',
             domain='test',
             plain_password='plain_password',
@@ -305,8 +305,8 @@ class TestDatabaseUserCollection(TestCase):
 
     def test_create_already_exist_legal_user(self):
         user = LegalUser.new_user(
-            company_code=CompanyCodeField('1'*11),
-            phone_number=PhoneNumberField('1'*10),
+            company_code=CompanyCodeField('1' * 11),
+            phone_number=PhoneNumberField('1' * 10),
             company_name='test',
             domain='test',
             plain_password='plain_password',
@@ -321,8 +321,8 @@ class TestDatabaseUserCollection(TestCase):
 
     def test_create_legal_user_with_none_existent_platform(self):
         user = LegalUser.new_user(
-            company_code=CompanyCodeField('1'*11),
-            phone_number=PhoneNumberField('1'*10),
+            company_code=CompanyCodeField('1' * 11),
+            phone_number=PhoneNumberField('1' * 10),
             company_name='test',
             domain='test',
             plain_password='plain_password',
@@ -339,8 +339,8 @@ class TestDatabaseUserCollection(TestCase):
 
     def test_create_legal_user_with_invalid_province(self):
         user = LegalUser.new_user(
-            company_code=CompanyCodeField('1'*11),
-            phone_number=PhoneNumberField('1'*10),
+            company_code=CompanyCodeField('1' * 11),
+            phone_number=PhoneNumberField('1' * 10),
             company_name='test',
             domain='test',
             plain_password='plain_password',
@@ -359,8 +359,8 @@ class TestDatabaseUserCollection(TestCase):
 
     def test_get_legal_user_by_company_code(self):
         user = LegalUser.new_user(
-            company_code=CompanyCodeField('1'*11),
-            phone_number=PhoneNumberField('1'*10),
+            company_code=CompanyCodeField('1' * 11),
+            phone_number=PhoneNumberField('1' * 10),
             company_name='test',
             domain='test',
             plain_password='plain_password',
@@ -377,8 +377,8 @@ class TestDatabaseUserCollection(TestCase):
 
     def test_get_none_existent_user(self):
         user = LegalUser.new_user(
-            company_code=CompanyCodeField('1'*11),
-            phone_number=PhoneNumberField('1'*10),
+            company_code=CompanyCodeField('1' * 11),
+            phone_number=PhoneNumberField('1' * 10),
             company_name='test',
             domain='test',
             plain_password='plain_password',
@@ -390,15 +390,15 @@ class TestDatabaseUserCollection(TestCase):
 
         try:
             self.database.users.get_by_company_code(
-                CompanyCodeField('2'*11))
+                CompanyCodeField('2' * 11))
             assert False
         except Exception as exc:
             assert isinstance(exc, errors.UserDoesNotExist)
 
     def test_update_last_login(self):
         user = LegalUser.new_user(
-            company_code=CompanyCodeField('1'*11),
-            phone_number=PhoneNumberField('1'*10),
+            company_code=CompanyCodeField('1' * 11),
+            phone_number=PhoneNumberField('1' * 10),
             company_name='test',
             domain='test',
             plain_password='plain_password',
