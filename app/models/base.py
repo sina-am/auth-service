@@ -1,6 +1,6 @@
 from typing import Any
 from pydantic import BaseModel, validator, BaseConfig
-from app.types import UserType
+from app.types.fields import UserType
 from datetime import datetime
 from bson import ObjectId
 

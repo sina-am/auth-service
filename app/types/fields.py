@@ -5,7 +5,22 @@ from bson import ObjectId
 
 from pydantic import constr
 from app.utils.translation import _
-from app.types.enums import Gender, UserType
+
+from enum import Enum
+
+
+class StrEnum(str, Enum):
+    pass
+
+
+class UserType(StrEnum):
+    LEGAL = "LEGAL"
+    REAL = "REAL"
+
+
+class Gender(StrEnum):
+    male = "MALE"
+    female = "FEMALE"
 
 
 GenderField = NewType('GenderField', Gender)

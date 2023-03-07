@@ -6,6 +6,7 @@ from app.models.profile import PictureIn
 from app.models.role import Role, UserRole
 from app.models.user import LegalUser, RealUser, RealUserRegistrationIn, LegalUserRegistrationIn
 from app.models.auth import RealUserAuthenticationIn, LegalUserAuthenticationIn
+from app.types.fields import NationalCodeField, PhoneNumberField
 from app.database import errors as dberrors, Database
 from app.services.s3 import S3Service
 from app.services.broker import Broker
@@ -68,7 +69,14 @@ class AuthService:
             message=new_user.dict()
         )
 
-    def create_admin(self, national_code, phone_number, first_name, last_name, password) -> RealUser:
+    def create_admin(
+            self,
+            national_code: NationalCodeField,
+            phone_number: PhoneNumberField,
+            first_name: str,
+            last_name: str,
+            password: str
+    ) -> RealUser:
         try:
             self.database.roles.get_by_platform("*")
         except dberrors.RoleDoesNotExist:

@@ -1,7 +1,7 @@
 import abc
 from typing import Union
 import asyncio
-from app.types import VerificationCodeField
+from app.types.fields import VerificationCodeField
 from app.core.errors import MyException
 from app.services.notification import SMSNotification
 from app.database import errors, Database

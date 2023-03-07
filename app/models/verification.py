@@ -1,6 +1,6 @@
 from typing import Literal
 from app.models.base import BaseModelIn
-from app.types import (
+from app.types.fields import (
     NationalCodeField, PhoneNumberField,
     VerificationCodeField, CompanyCodeField
 )
