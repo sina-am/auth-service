@@ -2,6 +2,7 @@ import abc
 from typing import Union
 import asyncio
 from app.types import VerificationCodeField
+from app.core.errors import MyException
 from app.services.notification import SMSNotification
 from app.database import errors, Database
 from app.cache import Cache
@@ -11,11 +12,11 @@ from app.models.verification import (
 )
 
 
-class InvalidVerificationCodeError(Exception):
+class InvalidVerificationCodeError(MyException):
     pass
 
 
-class VerificationCodeAlreadySendError(Exception):
+class VerificationCodeAlreadySendError(MyException):
     pass
 
 
@@ -91,7 +92,7 @@ class SMSVerificationService(VerificationService):
                 self.__delete(v.phone_number)
             return
 
-        raise InvalidVerificationCodeError()
+        raise InvalidVerificationCodeError("wrong verification code")
 
     async def send(self, v: Union[RealUserSendSMSCodeIn, LegalUserSendSMSCodeIn]):
         """ Send verification code. """
