@@ -1,8 +1,13 @@
 # Simple Authentication Microservice
-***
+
+<a name="overview"></a>
+## Overview
+experimental authentication app using FastAPI/MongoDB and RabbitMQ for RPC requests
+
+---
 <a name="installation"></a>
 ## Installation
-### Obtaning the code
+### Obtaining the code
 ```
     $ git clone https://github.com/sina-am/auth-service
     $ cd auth-service 
@@ -15,15 +20,14 @@ And access the APIs docs from [here](http://127.0.0.1:8000/docs).
 
 ## Connecting to external services
 The project uses following services:
-- `RabitMQ` as a message broker.
-- `MongoDB` as a main database.
-- `Redis` as a caching system.
+- `MongoDB` as the main storage.
+- `RabbitMQ` for RPC stuff. mainly JWT token validation requests.
+- `Redis` for storing some data related to user verification.
 
 For running services on your local machine you need
-Docker and Docker Compose installed on your system
-along with a DockerHub account.
+Docker and Docker Compose installed on your system.
 
-This will run all the necessery services
+This will run all the necessary services
 ```
     $ docker-compose up -d --build
 ```
@@ -39,11 +43,11 @@ run the main application.
 
 To create an admin user:
 ```
-    (.venv)$ python manager.py create-admin
+    (.venv)$ python auth.py create-admin
 ```
 Running the server
 ```
-    (.venv)$ uvicorn app.main:app --reload
+    (.venv)$ python auth.py run --debug 
 ```
 ***
 
