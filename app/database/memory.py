@@ -45,7 +45,7 @@ class MemoryUserDatabase(UserCollection):
     def update_last_login(self, user: Union[RealUser, LegalUser]):
         return
 
-    def get_all(self) -> Union[RealUser, LegalUser]:
+    def get_all(self) -> List[Union[RealUser, LegalUser]]:
         return self.db["users"]
 
     def get_by_national_code(self, national_code: NationalCodeField) -> RealUser:
