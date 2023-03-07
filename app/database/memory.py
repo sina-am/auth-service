@@ -37,7 +37,30 @@ class MemoryUserDatabase(UserCollection):
     def __init__(self, db):
         self.db = db
 
+    def __get_by_national_code(self, national_code: NationalCodeField) -> Union[RealUser, None]:
+        try:
+            return next(filter(lambda user: isinstance(user, RealUser)
+                               and user.national_code == national_code, self.db["users"]))
+        except StopIteration:
+            return None
+
+    def __get_by_company_code(self, company_code: CompanyCodeField) -> Union[LegalUser, None]:
+        try:
+            return next(filter(lambda user: isinstance(user, LegalUser)
+                               and user.company_code == company_code, self.db["users"]))
+        except StopIteration:
+            return None
+
+    def __error_on_already_exists(self, user: Union[RealUser, LegalUser]):
+        if isinstance(user, RealUser) and self.__get_by_national_code(user.national_code):
+            raise errors.UserAlreadyExist(
+                f"user with national code {user.national_code} already exists")
+        elif isinstance(user, LegalUser) and self.__get_by_company_code(user.company_code):
+            raise errors.UserAlreadyExist(
+                f"user with company code {user.company_code} already exists")
+
     def create(self, user: Union[RealUser, LegalUser]) -> Union[RealUser, LegalUser]:
+        self.__error_on_already_exists(user)
         user.id = ObjectId()  # type: ignore
         self.db["users"].append(user)
         return user
@@ -49,16 +72,16 @@ class MemoryUserDatabase(UserCollection):
         return self.db["users"]
 
     def get_by_national_code(self, national_code: NationalCodeField) -> RealUser:
-        for user in self.db["users"]:
-            if isinstance(user, RealUser) and user.national_code == national_code:
-                return user
-        raise errors.UserDoesNotExist()
+        user = self.__get_by_national_code(national_code)
+        if not user:
+            raise errors.UserDoesNotExist()
+        return user
 
     def get_by_company_code(self, company_code: CompanyCodeField) -> LegalUser:
-        for user in self.db["users"]:
-            if isinstance(user, LegalUser) and user.company_code == company_code:
-                return user
-        raise errors.UserDoesNotExist()
+        user = self.__get_by_company_code(company_code)
+        if not user:
+            raise errors.UserDoesNotExist()
+        return user
 
     def get_first(self) -> Union[RealUser, LegalUser]:
         if len(self.db["users"]) == 0:

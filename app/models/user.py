@@ -28,6 +28,25 @@ class User(MongoModel):
     picture_url: str
     contact_information: Optional[ContactInformation]
 
+    @staticmethod
+    def new_user(
+            phone_number: str,
+            plain_password,
+            user_type: UserTypeField,
+            roles: List[UserRole]
+    ):
+        return User(
+            _id=None,
+            roles=roles,
+            phone_number=phone_number,
+            password=get_password_hash(plain_password),
+            last_login=datetime.utcnow().replace(microsecond=0),
+            created_at=datetime.utcnow().replace(microsecond=0),
+            picture_url=path.get_default_profile_picture_url(),
+            type=user_type,
+            contact_information=None
+        )
+
     def set_password(self, plain_password: str):
         self.password = get_password_hash(plain_password)
 
@@ -70,16 +89,18 @@ class RealUser(User):
         roles: List[UserRole]
     ) -> "RealUser":
 
-        return RealUser(
-            national_code=national_code,
+        basic_user = User.new_user(
             phone_number=phone_number,
+            plain_password=plain_password,
+            roles=roles,
+            user_type=UserType.REAL  # type: ignore
+        )
+
+        return RealUser(
+            **basic_user.dict(),
+            national_code=national_code,
             first_name=first_name,
             last_name=last_name,
-            password=get_password_hash(plain_password),
-            roles=roles,
-            last_login=datetime.utcnow().replace(microsecond=0),
-            created_at=datetime.utcnow().replace(microsecond=0),
-            picture_url=path.get_default_profile_picture_url()
         )
 
 
@@ -186,16 +207,17 @@ class LegalUser(User):
         roles: List[UserRole],
     ) -> "LegalUser":
 
-        return LegalUser(
-            company_code=company_code,
+        basic_user = User.new_user(
             phone_number=phone_number,
+            plain_password=plain_password,
+            roles=roles,
+            user_type=UserType.LEGAL  # type: ignore
+        )
+        return LegalUser(
+            **basic_user.dict(),
+            company_code=company_code,
             company_name=company_name,
             domain=domain,
-            password=get_password_hash(plain_password),
-            roles=roles,
-            last_login=datetime.utcnow(),
-            created_at=datetime.utcnow(),
-            picture_url=path.get_default_profile_picture_url()
         )
 
 

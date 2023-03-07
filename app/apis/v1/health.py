@@ -16,7 +16,7 @@ def check_mongodb_connection(
     admin: Union[RealUser, LegalUser] = Depends(get_current_admin_user),
     srv: AuthService = Depends(get_srv)
 ):
-    """ Checkes MongoDB connection using ping command. """
+    """ Checks MongoDB connection using ping command. """
     try:
         srv.database.check_connection()
         return standard_response('ok')
