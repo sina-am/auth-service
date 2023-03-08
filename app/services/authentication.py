@@ -9,7 +9,7 @@ from app.models.auth import RealUserAuthenticationIn, LegalUserAuthenticationIn
 from app.types.fields import NationalCodeField, PhoneNumberField
 from app.database import errors as dberrors, Database
 from app.services.s3 import S3Service
-from app.services.broker import Broker
+from app.services.broker import Broker, Message
 from app.services.verification import VerificationService
 from app.core.errors import MyException
 
@@ -66,7 +66,10 @@ class AuthService:
         new_user = self.database.users.create(u.to_model())
         await self.broker.publish(
             queue_name='registration',
-            message=new_user.dict()
+            message=Message(
+                body=new_user.dict(),
+                type='user'
+            )
         )
 
     def create_admin(

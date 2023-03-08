@@ -1,10 +1,21 @@
 import abc
 import asyncio
 import json
-from typing import Callable, Any, Dict
-from aio_pika import Message, connect_robust, connect
+import uuid
+from dataclasses import dataclass
+from typing import Callable, Any, Dict, Union
+from aio_pika import Message as PikaMessage, connect_robust, connect
 from aio_pika.abc import AbstractIncomingMessage
 from app.core.logging import logger
+
+
+@dataclass
+class Message:
+    body: Any
+    content_type: str = "application/json"
+    content_encoding: str = ""
+    id: uuid.UUID = uuid.uuid4()
+    type: Union[str, None] = None
 
 
 class Serializer(abc.ABC):
@@ -36,7 +47,7 @@ class Broker(abc.ABC):
         raise NotImplementedError
 
     @abc.abstractmethod
-    async def publish(self, queue_name: str, message: dict):
+    async def publish(self, queue_name: str, message: Message):
         raise NotImplementedError
 
 
@@ -56,11 +67,11 @@ class MemoryBroker(Broker):
                 continue
             on_message(queue.pop(0))
 
-    async def publish(self, queue_name: str, message: dict):
+    async def publish(self, queue_name: str, message: Message):
         if not self.queues.get(queue_name):
             self.queues[queue_name] = []
 
-        self.queues[queue_name].append(message)
+        self.queues[queue_name].append(message.body)
 
 
 class RabbitMQ(Broker):
@@ -69,13 +80,21 @@ class RabbitMQ(Broker):
                  port: int,
                  username: str = "",
                  password: str = "",
-                 serializer: Serializer = JsonSerializer()
+                 serializers: Union[Dict[str, Serializer], None] = None
                  ) -> None:
         self.address = address
         self.port = port
         self.username = username
         self.password = password
-        self.serializer = serializer
+        if serializers:
+            self.serializers = serializers
+        else:
+            self.serializers = self.get_default_serializers()
+
+    def get_default_serializers(self) -> Dict[str, Serializer]:
+        return {
+            'application/json': JsonSerializer(),
+        }
 
     async def ping(self) -> bool:
         try:
@@ -89,7 +108,7 @@ class RabbitMQ(Broker):
         except Exception:
             return False
 
-    async def publish(self, queue_name: str, message: dict):
+    async def publish(self, queue_name: str, message: Message):
         connection = await connect_robust(
             host=self.address,
             port=self.port,
@@ -99,9 +118,12 @@ class RabbitMQ(Broker):
         channel = await connection.channel()
         await channel.declare_queue(queue_name)
         await channel.default_exchange.publish(
-            Message(
-                body=self.serializer.encode(message),
-                content_type='application/json'
+            PikaMessage(
+                message_id=message.id.hex,
+                body=self.serializers[message.content_type].encode(
+                    message.body),
+                content_type=message.content_type,
+                type=message.type,
             ), routing_key=queue_name
         )
 
@@ -123,12 +145,15 @@ class RabbitMQ(Broker):
                 try:
                     async with message.process(requeue=False):
                         assert message.reply_to
+                        assert message.content_type
 
                         response = on_message(
-                            self.serializer.decode(message.body))
+                            self.serializers[message.content_type].decode(message.body))
+
                         await channel.default_exchange.publish(
-                            Message(
-                                body=self.serializer.encode(response),
+                            PikaMessage(
+                                body=self.serializers["application/json"].encode(
+                                    response),
                                 content_type='json/application',
                                 correlation_id=message.correlation_id,
                             ),

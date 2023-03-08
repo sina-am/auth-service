@@ -1,6 +1,6 @@
 import unittest
 from app.services import RabbitMQ, Broker, MemoryBroker
-from app.services.broker import JsonSerializer
+from app.services.broker import JsonSerializer, Message
 from app.core.config import settings
 
 
@@ -31,7 +31,7 @@ class TestMemoryBroker(unittest.IsolatedAsyncioTestCase):
         return message
 
     async def test_publish_and_consume(self):
-        await self.broker.publish('queue_name', {'key': 'value'})
+        await self.broker.publish('queue_name', Message(body={'key': 'value'}))
         await self.broker.consume(None, queue_name='queue_name', on_message=self.process_message)
 
 
@@ -47,5 +47,5 @@ class TestRabbitMQBroker(unittest.IsolatedAsyncioTestCase):
     async def test_publish_message(self):
         await self.broker.publish(
             queue_name='test_authentication',
-            message={'message': 'test'}
+            message=Message({'message': 'test'})
         )
